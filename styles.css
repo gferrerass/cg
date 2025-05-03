@@ -1,7 +1,7 @@
 body {
     margin: 0;
     font-family: Monospace;
-    background-color: #000;
+    background-color: #b0e4fc;
     color: #fff;
     overflow: hidden;
   }
@@ -21,11 +21,8 @@ body {
     align-items: center;
     gap: 40px;
     padding: 30px;
-    background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     z-index: 10;
-  }
+  }  
   
   #menu button {
     padding: 20px 80px;
@@ -40,6 +37,15 @@ body {
   
   #menu button:hover {
     background-color: #2980b9;
+  }
+  
+  #menu button.go-back {
+    background-color: #aac8dc;
+    color: white;
+  }
+  
+  #menu button.go-back:hover {
+    background-color: #929fa8;
   }
   
 
