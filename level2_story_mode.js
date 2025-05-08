@@ -47,7 +47,7 @@ let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
  // Movement units per second
-const speed = 1;
+const speed = 5;
 
 
 const clock = new THREE.Clock();
@@ -78,6 +78,34 @@ const positions = [
     [5, -1, 0],
     [-5, 2, 0],
 ];
+
+
+
+//create the material of the floor
+var material_floor = new THREE.MeshPhongMaterial();
+material_floor.shininess=100;
+material_floor.color=  new THREE.Color(0xffffff);
+
+// Mapping for colour
+var color_map = new THREE.TextureLoader().load('textures/meat.jpg');
+color_map.wrapS = color_map.wrapT = THREE.RepeatWrapping;
+color_map.repeat.set(4, 4);
+material_floor.map = color_map;
+
+// Normal mapping
+var normal_map = new THREE.TextureLoader().load('textures/tileable.jpg');
+normal_map.wrapS = normal_map.wrapT = THREE.RepeatWrapping;
+normal_map.repeat=new THREE.Vector2(4,4);
+
+material_floor.normalMap= normal_map;
+
+
+var geometry_floor = new THREE.BoxGeometry(30,0.5,30);
+var meshFloor= new THREE.Mesh( geometry_floor, material_floor );
+meshFloor.position.y-=10;
+meshFloor.receiveShadow=true;
+scene.add( meshFloor );
+
 
 let polygons = createPolygons(positions, scene, 'Random', 8);
 
