@@ -1,52 +1,100 @@
 body {
-    margin: 0;
-    font-family: Monospace;
-    background-color: #b0e4fc;
-    color: #fff;
-    overflow: hidden;
-  }
+  margin: 0;
+  font-family: Monospace;
+  background-color: #b0e4fc;
+  color: #fff;
+  overflow: hidden;
+}
   
-  canvas {
-    width: 100%;
-    height: 100%;
-  }
+canvas {
+  width: 100%;
+  height: 100%;
+}
 
-  #menu {
-    position: absolute;
-    top: 30%;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 40px;
-    padding: 30px;
-    z-index: 10;
-  }  
+#menu {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 30px;
+  z-index: 10;
+}  
   
-  #menu button {
-    padding: 20px 80px;
-    font-size: 24px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background-color: #3498db;
-    color: white;
-    transition: background-color 0.3s ease;
-  }
+#menu button {
+  padding: 20px 80px;
+  font-size: 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: #3498db;
+  color: white;
+  transition: background-color 0.3s ease;
+}
   
-  #menu button:hover {
-    background-color: #2980b9;
-  }
+#menu button:hover {
+  background-color: #2980b9;
+}
   
-  #menu button.go-back {
-    background-color: #aac8dc;
-    color: white;
-  }
+#menu button.go-back {
+  background-color: #aac8dc;
+  color: white;
+}
   
-  #menu button.go-back:hover {
-    background-color: #929fa8;
-  }
-  
+#menu button.go-back:hover {
+  background-color: #929fa8;
+}
 
-  
+#crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#crosshair::before,
+#crosshair::after {
+  content: '';
+  position: absolute;
+  background-color: white;
+}
+
+#crosshair::before {
+  width: 2px;
+  height: 20px;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+#crosshair::after {
+  width: 20px;
+  height: 2px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+#info {
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+}
+
+#score {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  font-size: 18px;
+}
+
+

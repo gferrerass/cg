@@ -34,14 +34,14 @@ function createMenu() {
     modeMenu.id = 'menu';
   
     const mode1 = document.createElement('button');
-    mode1.innerText = 'Mode 1';
+    mode1.innerText = 'Story Mode';
     // Change when variant is added (variable or different file)
-    mode1.onclick = () => startLevel(`${levelName}`);
+    mode1.onclick = () => startLevel(`${levelName}_story_mode`);
   
     const mode2 = document.createElement('button');
-    mode2.innerText = 'Mode 2';
+    mode2.innerText = 'Survival Mode';
     // Change when variant is added (variable or different file)
-    mode2.onclick = () => startLevel(`${levelName}`);
+    mode2.onclick = () => startLevel(`${levelName}_survival_mode`);;
   
     const goBack = document.createElement('button');
     goBack.innerText = 'Go Back';
