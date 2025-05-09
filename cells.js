@@ -1,5 +1,6 @@
 import * as THREE from './build/three.module.js';
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
+import {decreaseHealth} from './level2_story_mode.js';
 
 // Setting up 3D model loader
 const loader = new GLTFLoader();
@@ -42,9 +43,9 @@ export function addSperm(position, vector, scene, type) {
         });
     }
     else { // Leukocyte
-        loadAndAddModel("3DModels/leukocyte.glb", position, 100, scene, (model, animations) => {
+        loadAndAddModel("3DModels/leukocyte.glb", position, 20, scene, (model, animations) => {
             model.userData.cell_type = "leukocyte";
-            model.userData.health = 2;
+            model.userData.health = 3;
             vector.push(model);
     
             // Enabling raycasting on each mesh subobject to know which model to delete
@@ -127,6 +128,11 @@ export function updateSperms(sperms, deltaTime, camera, rotationSpeed) {
         // Updating animation
         if (sperm.userData.mixer) {
             sperm.userData.mixer.update(deltaTime);
+        }
+        // Damaging player if too close
+        const distanceToPlayer = sperm.position.distanceTo(camera.position);
+        if (distanceToPlayer < 1) {
+            decreaseHealth();
         }
     });
 }

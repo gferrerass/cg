@@ -27,6 +27,7 @@ canvas {
 #menu button {
   padding: 20px 80px;
   font-size: 24px;
+  font-family: Monospace;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -94,6 +95,13 @@ canvas {
   position: fixed;
   top: 90%;
   left: 45%;
+  font-size: 32px;
+}
+
+#timer {
+  position: fixed;
+  top: 10px;
+  left: 40%;
   font-size: 32px;
 }
 

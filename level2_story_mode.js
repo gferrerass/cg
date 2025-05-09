@@ -19,16 +19,19 @@ camera.lookAt(Dir.x, Dir.y, Dir.z);
 
 // Setting up lights
 addLighting();
-
 // Setting up Pointer Lock & First Person camera movement
 const pointerLockElement = renderer.domElement; // Applying pointer lock to the canvas
 
 // Setting up Raycaster for shooting
 const raycaster = new THREE.Raycaster();
 
+// GUI variables
 let pointerLockEnabled = false;
 let score = 0;
-let health = 3;
+var health = 3;
+var timeLeft = 10;
+var timerInterval;
+var lastDamageTime = 1000;
 
 // Rotation around the Y-Axis (horizontally)
 var yaw = 0;
@@ -50,6 +53,7 @@ const clock = new THREE.Clock();
 document.getElementById('crosshair').style.display = 'block';
 document.getElementById('score').style.display = 'block';
 document.getElementById('health').style.display = 'block';
+document.getElementById('timer').style.display = 'block';
 
 // Creating uterus
 var meshUterus;
@@ -61,6 +65,8 @@ var spermsRotationSpeed = 2;
 
 
 // ------------------------------- MAIN CODE -------------------------------
+
+startTimer();
 
 
 addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
@@ -156,13 +162,14 @@ function addUterus() {
     material_floor.normalMap = normal_map;
 
     // Uterus geometry
-    var geometry_uterus = new THREE.SphereGeometry(50, 64, 64);
+    var geometry_uterus = new THREE.SphereGeometry(25, 32, 32);
     meshUterus = new THREE.Mesh(geometry_uterus, material_floor);
     meshUterus.scale.set(1, 2, 1.5);
     meshUterus.rotation.x = Math.PI / 2;
     meshUterus.receiveShadow = true;
     scene.add(meshUterus);
 }
+
 
 function shoot() {
     raycaster.set(camera.position, Dir.clone().normalize());
@@ -186,6 +193,23 @@ function shoot() {
             if (sperm.userData.cell_type === "leukocyte") {
                 // Reducing leukocyte's health by 1
                 sperm.userData.health -= 1;
+
+                let newColor;
+                if (sperm.userData.health === 1) {
+                    newColor = new THREE.Color(0xff0000);
+                } else if (sperm.userData.health === 2) {
+                    newColor = new THREE.Color(0xffff00);
+                }
+                // Updating colour
+                if (newColor) {
+                    sperm.traverse(child => {
+                        if (child.isMesh) {
+                            child.material = child.material.clone();
+                            child.material.color = newColor;
+                        }
+                    });
+                }
+
                 if (sperm.userData.health <= 0) {
                     scene.remove(sperm);
                     const index = sperms.indexOf(sperm);
@@ -235,6 +259,35 @@ function updateMovement(delta) {
     if (intersects.length > 0) return;
     Pos.copy(newPos);
 }
+
+function startTimer() {
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        const timerElement = document.getElementById('timer');
+        timerElement.textContent = `Time left: ${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+            // Displaying time's out message
+            //clearInterval(timerInterval);
+            const timerElement = document.getElementById('timer');
+            timerElement.style.left = '30%';
+            timerElement.textContent = `Time's out! The tubes are open!`;
+        }
+    }, 1000); // (1 second)
+}
+
+export function decreaseHealth() {
+    if (lastDamageTime - timeLeft >= 3) { 
+        if (health > 0) health--;
+        lastDamageTime = timeLeft;
+
+        const healthElement = document.getElementById('health');
+        if (healthElement) {
+            healthElement.textContent = `Health: ${health}`;
+        }
+    }
+}
+
 
 
 // Final update loop
