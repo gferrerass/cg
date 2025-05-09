@@ -1,11 +1,7 @@
 import * as THREE from 'three';
-import { Cube, SquaredPyramid, Dodecahedron, createPolygons } from './Polygon.js';
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
+import {addSperm, updateSperms} from './cells.js';
 
 // -------------------------- SETUP & VARIABLES --------------------------
-
-const crosshair = document.getElementById('crosshair');
-const guiContainer = document.getElementById('gui-container');
 
 // Creating the scene
 var scene = new THREE.Scene();
@@ -32,6 +28,7 @@ const raycaster = new THREE.Raycaster();
 
 let pointerLockEnabled = false;
 let score = 0;
+let health = 3;
 
 // Rotation around the Y-Axis (horizontally)
 var yaw = 0;
@@ -43,6 +40,8 @@ let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
+let moveUp = false;
+let moveDown = false;
 const speed = 10;
 
 const clock = new THREE.Clock();
@@ -50,102 +49,161 @@ const clock = new THREE.Clock();
 // Displaying the crosshair and Score
 document.getElementById('crosshair').style.display = 'block';
 document.getElementById('score').style.display = 'block';
+document.getElementById('health').style.display = 'block';
 
-// Setting up 3D model loader
-const loader = new GLTFLoader();
+// Creating uterus
+var meshUterus;
+addUterus();
 
-let sperm;
-let mixer; // For animation mixer
+let sperms = [];
+var spermsRotationSpeed = 2;
+
+
 
 // ------------------------------- MAIN CODE -------------------------------
 
-var material_floor = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
-var geometry_floor = new THREE.CylinderGeometry(1, 1, 0.1, 20);
-var Floor = new THREE.Mesh(geometry_floor, material_floor);
-Floor.position.y = -1;
-scene.add(Floor);
 
-// Adding polygons
-const positions = [
-    [5, 0, 5],
-    [-5, -2, 5],
-    [5, -3, -5],
-    [-5, -1, -5],
-    [0, 1, 5],
-    [0, 0, -5],
-    [5, -1, 0],
-    [-5, 2, 0],
-];
-
-loadAndAddModel("3DModels/sperm.glb", new THREE.Vector3(0, 0, 0), 0.1, (model, animations) => {
-    sperm = model;
-    if (animations && animations.length) {
-        // Creating an animation mixer for the loaded animations
-        mixer = new THREE.AnimationMixer(sperm);
-        animations.forEach(animation => {
-            mixer.clipAction(animation).play();
-        });
-    }
-});
-
-var material_floor = new THREE.MeshPhongMaterial({
-    shininess: 100,
-    color: new THREE.Color(0xffffff),
-    side: THREE.BackSide
-});
-
-// Mapping for colour
-var color_map = new THREE.TextureLoader().load('textures/meat.jpg');
-color_map.wrapS = color_map.wrapT = THREE.RepeatWrapping;
-color_map.repeat.set(10, 10);
-material_floor.map = color_map;
-
-// Normal mapping
-var normal_map = new THREE.TextureLoader().load('textures/tileable.jpg');
-normal_map.wrapS = normal_map.wrapT = THREE.RepeatWrapping;
-normal_map.repeat = new THREE.Vector2(10, 10);
-
-material_floor.normalMap = normal_map;
-
-// Uterus geometry
-var geometry_uterus = new THREE.SphereGeometry(50, 64, 64);
-var meshSphere = new THREE.Mesh(geometry_uterus, material_floor);
-meshSphere.scale.set(1, 2, 1.5);
-meshSphere.rotation.x = Math.PI / 2;
-meshSphere.receiveShadow = true;
-scene.add(meshSphere);
-
-let polygons = createPolygons(positions, scene, 'Random', 8);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(30, 0, 1), sperms, scene, 1);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(-30, 0, 1), sperms, scene, 1);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(-30, 0, 30), sperms, scene, 1);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(-30, 0, -30), sperms, scene, 1);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(-300, 0, 1), sperms, scene, 1);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(50, 0, 1), sperms, scene, 1);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
+addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
+addSperm(new THREE.Vector3(-50, 0, 1), sperms, scene, 1);
 
 // ------------------------------- FUNCTIONS -------------------------------
 
-function loadAndAddModel(path, position, scale, callback) {
-    loader.load(path, (gltf) => {
-        const model = gltf.scene;
-        model.position.copy(position);
-        model.scale.setScalar(scale);
+function addUterus() {
+    var material_floor = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
+    var geometry_floor = new THREE.CylinderGeometry(1, 1, 0.1, 20);
+    var Floor = new THREE.Mesh(geometry_floor, material_floor);
+    Floor.position.y = -1;
+    scene.add(Floor);
 
-        model.castShadow = true;
-        model.receiveShadow = true;
-
-        scene.add(model);
-
-        // Passing model and animations to the callback
-        callback(model, gltf.animations);
+    var material_floor = new THREE.MeshPhongMaterial({
+        shininess: 100,
+        color: new THREE.Color(0xffffff),
+        side: THREE.BackSide
     });
+
+    // Mapping for colour
+    var color_map = new THREE.TextureLoader().load('textures/meat.jpg');
+    color_map.wrapS = color_map.wrapT = THREE.RepeatWrapping;
+    color_map.repeat.set(10, 10);
+    material_floor.map = color_map;
+
+    // Normal mapping
+    var normal_map = new THREE.TextureLoader().load('textures/tileable.jpg');
+    normal_map.wrapS = normal_map.wrapT = THREE.RepeatWrapping;
+    normal_map.repeat = new THREE.Vector2(10, 10);
+
+    material_floor.normalMap = normal_map;
+
+    // Uterus geometry
+    var geometry_uterus = new THREE.SphereGeometry(50, 64, 64);
+    meshUterus = new THREE.Mesh(geometry_uterus, material_floor);
+    meshUterus.scale.set(1, 2, 1.5);
+    meshUterus.rotation.x = Math.PI / 2;
+    meshUterus.receiveShadow = true;
+    scene.add(meshUterus);
 }
 
 function shoot() {
     raycaster.set(camera.position, Dir.clone().normalize());
-    const intersects = raycaster.intersectObjects(polygons.map(polygon => polygon.mesh));
+
+    // Collecting all meshes from all Sperm models
+    const spermMeshes = sperms.flatMap(sperm => {
+        const meshes = [];
+        sperm.traverse(child => {
+            if (child.isMesh) meshes.push(child);
+        });
+        return meshes;
+    });
+
+    // Checking if a sperm has been shot and removing it
+    const intersects = raycaster.intersectObjects(spermMeshes);
 
     if (intersects.length > 0) {
         const hitObject = intersects[0].object;
-        score += 1;
-        document.getElementById('score').innerText = `Score: ${score}`;
-        scene.remove(hitObject);
-        const index = polygons.indexOf(hitObject);
-        if (index > -1) polygons.splice(index, 1);
+        const sperm = hitObject.userData.parentModel;
+        if (sperm) {
+            if (sperm.userData.cell_type === "leukocyte") {
+                // Reducing leukocyte's health by 1
+                sperm.userData.health -= 1;
+                if (sperm.userData.health <= 0) {
+                    scene.remove(sperm);
+                    const index = sperms.indexOf(sperm);
+                    if (index > -1) sperms.splice(index, 1);
+                    // Increasing score only when eliminated
+                    score += 5;
+                    document.getElementById('score').innerText = `Score: ${score}`;
+                }
+            } else { // It's a sperm, removing directly
+                scene.remove(sperm);
+                // Obtaining removed sperm index and removing from array
+                const index = sperms.indexOf(sperm);
+                if (index > -1) sperms.splice(index, 1);
+                // Increasing score
+                score++;
+                document.getElementById('score').innerText = `Score: ${score}`;
+            }
+        }
     }
 }
 
@@ -162,25 +220,35 @@ function updateMovement(delta) {
     if (moveBackward) moveVector.sub(forward);
     if (moveLeft) moveVector.sub(right);
     if (moveRight) moveVector.add(right);
+    if (moveUp) moveVector.y += 0.5;
+    if (moveDown) moveVector.y -= 0.5;
 
+    // Calculating new position
     moveVector.normalize().multiplyScalar(speed * delta);
-    Pos.add(moveVector);
+    let newPos = Pos.clone().add(moveVector);
+
+    const safetyMargin = 5;
+    // Raycasting from current position towards movement direction
+    const ray = new THREE.Raycaster(Pos, moveVector, 0, moveVector.length() + safetyMargin);
+    const intersects = ray.intersectObject(meshUterus, true);
+    // Not moving if collision detected
+    if (intersects.length > 0) return;
+    Pos.copy(newPos);
 }
+
 
 // Final update loop
 var MyUpdateLoop = function () {
     var delta = clock.getDelta();
 
-    polygons.forEach(polygon => polygon.update());
-
     camera.position.set(Pos.x, Pos.y, Pos.z);
     camera.lookAt(Pos.x + Dir.x, Pos.y + Dir.y, Pos.z + Dir.z);
     camera.updateProjectionMatrix();
 
-    updateMovement(delta);
+    updateSperms(sperms, delta, camera, spermsRotationSpeed);
 
-    // Updating the animations if there is an animation mixer
-    if (mixer) mixer.update(delta);
+    // Updating player movement
+    updateMovement(delta);
 
     renderer.render(scene, camera);
     requestAnimationFrame(MyUpdateLoop);
@@ -253,6 +321,8 @@ window.addEventListener('keydown', (event) => {
     if (event.code === 'KeyS') moveBackward = true;
     if (event.code === 'KeyA') moveLeft = true;
     if (event.code === 'KeyD') moveRight = true;
+    if (event.code === 'Space') moveUp = true;
+    if (event.code === 'ShiftLeft') moveDown = true;
 });
 
 window.addEventListener('keyup', (event) => {
@@ -260,4 +330,6 @@ window.addEventListener('keyup', (event) => {
     if (event.code === 'KeyS') moveBackward = false;
     if (event.code === 'KeyA') moveLeft = false;
     if (event.code === 'KeyD') moveRight = false;
+    if (event.code === 'Space') moveUp = false;
+    if (event.code === 'ShiftLeft') moveDown = false;
 });

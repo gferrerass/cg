@@ -83,18 +83,17 @@ canvas {
   transform: translateY(-50%);
 }
 
-#info {
-  position: absolute;
-  bottom: 10px;
-  width: 100%;
-  text-align: center;
-}
-
 #score {
   position: fixed;
   top: 10px;
   left: 10px;
-  font-size: 18px;
+  font-size: 32px;
 }
 
+#health {
+  position: fixed;
+  top: 90%;
+  left: 45%;
+  font-size: 32px;
+}
 
