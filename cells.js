@@ -5,7 +5,7 @@ import {decreaseHealth} from './level2_story_mode.js';
 // Setting up 3D model loader
 const loader = new GLTFLoader();
 
-function loadAndAddModel(path, position, scale, scene, callback) {
+export function loadAndAddModel(path, position, scale, scene, callback) {
     loader.load(path, (gltf) => {
         const model = gltf.scene;
         model.position.copy(position);
@@ -21,7 +21,7 @@ function loadAndAddModel(path, position, scale, scene, callback) {
     });
 }
 
-export function addSperm(position, vector, scene, type) {
+export function addSperm(position, vector, scene, type, healthpoints) {
     if (type == 0) { // Sperm
         loadAndAddModel("3DModels/sperm.glb", position, 0.1, scene, (model, animations) => {
             model.userData.cell_type = "sperm";
@@ -45,7 +45,7 @@ export function addSperm(position, vector, scene, type) {
     else { // Leukocyte
         loadAndAddModel("3DModels/leukocyte.glb", position, 20, scene, (model, animations) => {
             model.userData.cell_type = "leukocyte";
-            model.userData.health = 3;
+            model.userData.health = healthpoints;
             vector.push(model);
     
             // Enabling raycasting on each mesh subobject to know which model to delete

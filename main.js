@@ -35,13 +35,11 @@ function createMenu() {
   
     const mode1 = document.createElement('button');
     mode1.innerText = 'Story Mode';
-    // Change when variant is added (variable or different file)
     mode1.onclick = () => startLevel(`${levelName}_story_mode`);
   
     const mode2 = document.createElement('button');
     mode2.innerText = 'Survival Mode';
-    // Change when variant is added (variable or different file)
-    mode2.onclick = () => startLevel(`${levelName}_survival_mode`);;
+    mode2.onclick = () => startLevel(`${levelName}_survival_mode`);
   
     const goBack = document.createElement('button');
     goBack.innerText = 'Go Back';

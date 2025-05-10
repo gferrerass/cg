@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {addSperm, updateSperms} from './cells.js';
+import {addSperm, updateSperms, loadAndAddModel} from './cells.js';
 
 // -------------------------- SETUP & VARIABLES --------------------------
 
@@ -29,7 +29,7 @@ const raycaster = new THREE.Raycaster();
 let pointerLockEnabled = false;
 let score = 0;
 var health = 3;
-var timeLeft = 10;
+var timeLeft = 120;
 var timerInterval;
 var lastDamageTime = 1000;
 
@@ -56,93 +56,24 @@ document.getElementById('health').style.display = 'block';
 document.getElementById('timer').style.display = 'block';
 
 // Creating uterus
-var meshUterus;
+var meshUterus, meshTubes;
 addUterus();
 
 let sperms = [];
 var spermsRotationSpeed = 2;
-
+var door1, door2;
+var material_uterus, geometry_uterus;
+var finished = false;
 
 
 // ------------------------------- MAIN CODE -------------------------------
 
 startTimer();
 
-
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(30, 0, 1), sperms, scene, 1);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(-30, 0, 1), sperms, scene, 1);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(-30, 0, 30), sperms, scene, 1);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(-30, 0, -30), sperms, scene, 1);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(-300, 0, 1), sperms, scene, 1);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(50, 0, 1), sperms, scene, 1);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(2, 0, 2), sperms, scene, 0);
-addSperm(new THREE.Vector3(-3, 0, 1), sperms, scene, 0);
-addSperm(new THREE.Vector3(-50, 0, 1), sperms, scene, 1);
-
 // ------------------------------- FUNCTIONS -------------------------------
 
 function addUterus() {
-    var material_floor = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
-    var geometry_floor = new THREE.CylinderGeometry(1, 1, 0.1, 20);
-    var Floor = new THREE.Mesh(geometry_floor, material_floor);
-    Floor.position.y = -1;
-    scene.add(Floor);
-
-    var material_floor = new THREE.MeshPhongMaterial({
+    material_uterus = new THREE.MeshPhongMaterial({
         shininess: 100,
         color: new THREE.Color(0xffffff),
         side: THREE.BackSide
@@ -152,18 +83,18 @@ function addUterus() {
     var color_map = new THREE.TextureLoader().load('textures/meat.jpg');
     color_map.wrapS = color_map.wrapT = THREE.RepeatWrapping;
     color_map.repeat.set(10, 10);
-    material_floor.map = color_map;
+    material_uterus.map = color_map;
 
     // Normal mapping
     var normal_map = new THREE.TextureLoader().load('textures/tileable.jpg');
     normal_map.wrapS = normal_map.wrapT = THREE.RepeatWrapping;
     normal_map.repeat = new THREE.Vector2(10, 10);
 
-    material_floor.normalMap = normal_map;
+    material_uterus.normalMap = normal_map;
 
     // Uterus geometry
-    var geometry_uterus = new THREE.SphereGeometry(25, 32, 32);
-    meshUterus = new THREE.Mesh(geometry_uterus, material_floor);
+    geometry_uterus = new THREE.SphereGeometry(25, 32, 32);
+    meshUterus = new THREE.Mesh(geometry_uterus, material_uterus);
     meshUterus.scale.set(1, 2, 1.5);
     meshUterus.rotation.x = Math.PI / 2;
     meshUterus.receiveShadow = true;
@@ -251,12 +182,19 @@ function updateMovement(delta) {
     moveVector.normalize().multiplyScalar(speed * delta);
     let newPos = Pos.clone().add(moveVector);
 
-    const safetyMargin = 5;
+    const safetyMargin = 1;
     // Raycasting from current position towards movement direction
     const ray = new THREE.Raycaster(Pos, moveVector, 0, moveVector.length() + safetyMargin);
-    const intersects = ray.intersectObject(meshUterus, true);
-    // Not moving if collision detected
-    if (intersects.length > 0) return;
+    if (!finished) {
+        const intersects = ray.intersectObject(meshUterus, true);
+        // Not moving if collision detected
+        if (intersects.length > 0) return;
+    }
+    else {
+        const intersects = ray.intersectObject(meshTubes, true);
+        // Not moving if collision detected
+        if (intersects.length > 0) return;
+    }
     Pos.copy(newPos);
 }
 
@@ -266,6 +204,8 @@ function startTimer() {
         const timerElement = document.getElementById('timer');
         timerElement.textContent = `Time left: ${timeLeft}s`;
 
+        addEnemies();
+        
         if (timeLeft <= 0) {
             // Displaying time's out message
             //clearInterval(timerInterval);
@@ -288,11 +228,162 @@ export function decreaseHealth() {
     }
 }
 
+function addEnemies() {
+    switch (timeLeft) {
+        case 119:
+            var offset = new THREE.Vector3(30, 0, 0);
+            var newPos = Pos.clone().add(offset);
+            addSperm(newPos, sperms, scene, 1, 2);
+            offset = new THREE.Vector3(10, 0, 0);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 60; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 100:
+            spermsRotationSpeed = 3.5;
+            var offset = new THREE.Vector3(0, 0, 20);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 2);
+            }
+            offset = new THREE.Vector3(-10, 0, 10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 80:
+            var offset = new THREE.Vector3(-20, 20, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 2);
+            }
+            offset = new THREE.Vector3(0, 20, 0);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 60:
+            spermsRotationSpeed = 5;
+            var offset = new THREE.Vector3(-30, 0, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(0, 0, 10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 40:
+            var offset = new THREE.Vector3(0, -20, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(0, 20, 0);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 20:
+            spermsRotationSpeed = 6;
+            var offset = new THREE.Vector3(-30, 0, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(20, 0, 10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 0:
+            spermsRotationSpeed = 7;
+            addGates();
+            var offset = new THREE.Vector3(0, 20, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(-20, 0, -10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+    }
+}
 
+function addGates() {
+    var material_door = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry_door = new THREE.CylinderGeometry(1, 1, 0.1, 20);
+    door1 = new THREE.Mesh(geometry_door, material_door);
+    door1.position.y = -1;
+    // Position and rotation
+    door1.position.set(0, 0, 49);
+    door1.rotation.x = Math.PI / 2;
+
+    scene.add(door1);
+
+    door2 = new THREE.Mesh(geometry_door, material_door);
+    door2.position.y = -1;
+    // Position and rotation
+    door2.position.set(0, 0, -49);
+    door2.rotation.x = -Math.PI / 2;
+
+    scene.add(door2);
+}
+
+function checkGates() {
+    const distanceToDoor1 = door1.position.distanceTo(camera.position);
+    const distanceToDoor2 = door2.position.distanceTo(camera.position);
+
+    if (distanceToDoor1 < 1 || distanceToDoor2 < 1) {
+        sperms.forEach(cell => {
+        scene.remove(cell);
+        });
+
+        var newpos = new THREE.Vector3(0, -20, -20);
+        // Changing player position to 0,0,0)
+        Pos.copy(newpos);
+        
+        var offset = new THREE.Vector3(0, 20, 20);
+        // Adding tubes in (0,0,0)
+        newpos = Pos.clone().add(offset);
+        // Adding tubes
+        var geometry_tubes= new THREE.SphereGeometry(40, 60, 40);
+        meshTubes = new THREE.Mesh(geometry_tubes, material_uterus);
+        meshTubes.scale.set(1, 1, 1);
+        meshTubes.receiveShadow = true;
+        meshTubes.position.copy(newpos);
+        scene.add(meshTubes);
+
+        // Removing uterus and doors
+        scene.remove(meshUterus);
+        scene.remove(door1);
+        scene.remove(door2);
+
+        // 50% chance of adding egg cell
+        if (Math.random() < 0.5) {
+            // Adding egg cell
+            loadAndAddModel("3DModels/cell.glb", newpos, 10, scene, (model, animations) => {});
+        }
+
+        finished = true;
+    }
+
+}
 
 // Final update loop
 var MyUpdateLoop = function () {
     var delta = clock.getDelta();
+
 
     camera.position.set(Pos.x, Pos.y, Pos.z);
     camera.lookAt(Pos.x + Dir.x, Pos.y + Dir.y, Pos.z + Dir.z);
@@ -308,6 +399,8 @@ var MyUpdateLoop = function () {
 
     flashlight.position.copy(camera.position);
     flashlight.target.position.copy(camera.position.clone().add(Dir));
+
+    checkGates();
 };
 requestAnimationFrame(MyUpdateLoop);
 
