@@ -1,290 +1,418 @@
-import * as THREE from "three";
-import { OrbitControls } from "./build/controls/OrbitControls.js";
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
+import * as THREE from 'three';
+import {addSperm, updateSperms} from './cellsSurvival.js';
+
+// -------------------------- SETUP & VARIABLES --------------------------
 
 // Creating the scene
-var scene = new THREE.Scene( );
-
-// Creating the webgl renderer
-var renderer = new THREE.WebGLRenderer( );
-renderer.setSize(window.innerWidth,window.innerHeight);
-// Enabling shadow map rendering
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-// Adding the renderer to the current document
+var scene = new THREE.Scene();
+var renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+var ratio = window.innerWidth / window.innerHeight;
 
 // Creating the perspective camera
-var ratio = window.innerWidth/window.innerHeight;
-const camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
-camera.position.set(0, 40, 50);
-camera.lookAt(0, 0, 0);
-
-// Setting up orbit controls
-var controls = new OrbitControls(camera, renderer.domElement);
+var camera = new THREE.PerspectiveCamera(45, ratio, 0.00001, 1000);
+var Pos = new THREE.Vector3(0, 0, 0);
+camera.position.set(Pos.x, Pos.y, Pos.z);
+var Dir = new THREE.Vector3(0, 0, 1);
+camera.lookAt(Dir.x, Dir.y, Dir.z);
 
 // Setting up lights
 addLighting();
+// Setting up Pointer Lock & First Person camera movement
+const pointerLockElement = renderer.domElement; // Applying pointer lock to the canvas
 
-// Setting up texture loader
-const textureLoader = new THREE.TextureLoader();
-
-// Setting up 3D model loader
-const loader = new GLTFLoader();
-
-// Global variables for objects
-let chair, desk, sofa;
-
-// Global variables for clicking objects
+// Setting up Raycaster for shooting
 const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let selectedObject = null;
 
-///////////////////////////////////////////////////////////////////////////////////    
+// GUI variables
+let pointerLockEnabled = false;
+let score = 0;
+var health = 3;
+var timeLeft = 1;
+var timerInterval;
+var lastDamageTime = 1000;
 
-// Loading chair
-loadAndAddModel("3DModels/chair.glb", new THREE.Vector3(-10, 0, -15), 10, (model) => {
-    chair = model;
-    chair.rotation.y = Math.PI ;
-});
+// Rotation around the Y-Axis (horizontally)
+var yaw = 0;
+// Rotation around the X-Axis (vertically)
+var pitch = 0;
 
-// Loading desk
-loadAndAddModel("3DModels/desk.glb", new THREE.Vector3(-10, 0, -20), 10, (model) => {
-    desk = model;
-});
+// Movement variables
+let moveForward = false;
+let moveBackward = false;
+let moveLeft = false;
+let moveRight = false;
+let moveUp = false;
+let moveDown = false;
+const speed = 10;
 
-// Loading sofa
-loadAndAddModel("3DModels/sofa.glb", new THREE.Vector3(15, 0, 0), 0.1, (model) => {
-    sofa = model;
-    sofa.name = "sofa";
-});
+const clock = new THREE.Clock();
 
-// Loading floor
-textureLoader.load('textures/floor.jpg', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 5);
-    const floorMaterial = new THREE.MeshStandardMaterial({ map: texture });
+// Displaying the crosshair and Score
+document.getElementById('crosshair').style.display = 'block';
+document.getElementById('score').style.display = 'block';
+document.getElementById('health').style.display = 'block';
 
-    // Creating floor
-    const floorGeometry = new THREE.PlaneGeometry(50, 50);
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.name = "floor";
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    scene.add(floor);
-});
+// Creating uterus
+var meshUterus, meshTubes;
+addUterus();
 
-// Loading wall
-textureLoader.load('textures/wall.jfif', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 3);
-    const wallMaterial = new THREE.MeshStandardMaterial({ map: texture });
-
-    // Creating wall
-    const wallGeometry = new THREE.PlaneGeometry(50, 30);
-    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-    wall.name = "wall";
-    wall.position.y = 15;
-    wall.position.z = -25;
-    wall.receiveShadow = true;
-    scene.add(wall);
-});
-
-// Loading brick wall
-textureLoader.load('textures/brick.jfif', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 3);
-    const wallMaterial = new THREE.MeshStandardMaterial({ map: texture });
-
-    // Creating wall
-    const wallGeometry = new THREE.PlaneGeometry(50, 30);
-    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-    wall.name = "wall";
-    wall.position.y = 15;
-    wall.position.x = 25;
-    wall.rotation.y = -Math.PI / 2;
-    wall.receiveShadow = true;
-    scene.add(wall);
-});
-/////////////////////////////////////////////////////////////////////////////////// 
+let sperms = [];
+var spermsRotationSpeed = 2;
+var door1, door2;
+var material_uterus, geometry_uterus;
+var finished = false;
 
 
-function loadAndAddModel(path, position, scale, callback) {
-    loader.load(path, (gltf) => {
-        const model = gltf.scene;
-        model.position.copy(position);
-        model.scale.setScalar(scale);
+// ------------------------------- MAIN CODE -------------------------------
 
-        // Enabling shadows on all mesh children
-        model.traverse((child) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
-        });
+startTimer();
 
-        scene.add(model);
-        callback(model);
+// ------------------------------- FUNCTIONS -------------------------------
+
+function addUterus() {
+    material_uterus = new THREE.MeshPhongMaterial({
+        shininess: 100,
+        color: new THREE.Color(0xffffff),
+        side: THREE.BackSide
     });
+
+    // Mapping for colour
+    var color_map = new THREE.TextureLoader().load('textures/meat.jpg');
+    color_map.wrapS = color_map.wrapT = THREE.RepeatWrapping;
+    color_map.repeat.set(10, 10);
+    material_uterus.map = color_map;
+
+    // Normal mapping
+    var normal_map = new THREE.TextureLoader().load('textures/tileable.jpg');
+    normal_map.wrapS = normal_map.wrapT = THREE.RepeatWrapping;
+    normal_map.repeat = new THREE.Vector2(10, 10);
+
+    material_uterus.normalMap = normal_map;
+
+    // Uterus geometry
+    geometry_uterus = new THREE.SphereGeometry(25, 32, 32);
+    meshUterus = new THREE.Mesh(geometry_uterus, material_uterus);
+    meshUterus.scale.set(1, 2, 1.5);
+    meshUterus.rotation.x = Math.PI / 2;
+    meshUterus.receiveShadow = true;
+    scene.add(meshUterus);
 }
 
-function addLighting() {
-    // Adding a soft ambient light inside a room
-    const ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 0.5);
-    scene.add(ambientLight);
 
-    // Adding a point light from the ceiling
-    const pointLight = new THREE.PointLight(new THREE.Color(1, 1, 1), 0.8, 100);
-    pointLight.position.set(0, 30, 0);
-    // Enabling shadow casting for point light
-    pointLight.castShadow = true;
-    // Setting up shadow quality
-    pointLight.shadow.mapSize.width = 1024;
-    pointLight.shadow.mapSize.height = 1024;
-    // Correcting shadow acne
-    pointLight.shadow.bias = -0.005;
-    scene.add(pointLight);
+function shoot() {
+    // Not shooting if game is over
+    if (health == 0) return;
+    raycaster.set(camera.position, Dir.clone().normalize());
 
-    // Adding a small light that follows the camera
-    const cameraLight = new THREE.PointLight(new THREE.Color(1, 1, 1), 0.2);
-    camera.add(cameraLight);
-    scene.add(camera);
-}
+    // Collecting all meshes from all Sperm models
+    const spermMeshes = sperms.flatMap(sperm => {
+        const meshes = [];
+        sperm.traverse(child => {
+            if (child.isMesh) meshes.push(child);
+        });
+        return meshes;
+    });
 
-// Function that detects when an object is clicked on
-function onMouseClick(event) {
-    // Normalising mouse coordinates (-1 to +1)
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-
-    // Getting all intersected objects
-    const intersects = raycaster.intersectObjects(scene.children, true);
+    // Checking if a sperm has been shot and removing it
+    const intersects = raycaster.intersectObjects(spermMeshes);
 
     if (intersects.length > 0) {
-        // Highlighting clicked object 
-        const clickedMesh = intersects[0].object;
-        highlightObject(clickedMesh);
+        const hitObject = intersects[0].object;
+        const sperm = hitObject.userData.parentModel;
+        if (sperm) {
+            if (sperm.userData.cell_type === "leukocyte") {
+                // Reducing leukocyte's health by 1
+                sperm.userData.health -= 1;
+
+                let newColor;
+                if (sperm.userData.health == 1) {
+                    newColor = new THREE.Color(0xff0000);
+                } else if (sperm.userData.health == 2) {
+                    newColor = new THREE.Color(0xffff00);
+                }
+                // Updating colour
+                if (newColor) {
+                    sperm.traverse(child => {
+                        if (child.isMesh) {
+                            child.material = child.material.clone();
+                            child.material.color = newColor;
+                        }
+                    });
+                }
+
+                if (sperm.userData.health <= 0) {
+                    scene.remove(sperm);
+                    const index = sperms.indexOf(sperm);
+                    if (index > -1) sperms.splice(index, 1);
+                    // Increasing score only when eliminated
+                    score += 5;
+                    document.getElementById('score').innerText = `Score: ${score}`;
+                }
+            } else { // It's a sperm, removing directly
+                scene.remove(sperm);
+                // Obtaining removed sperm index and removing from array
+                const index = sperms.indexOf(sperm);
+                if (index > -1) sperms.splice(index, 1);
+                // Increasing score
+                score++;
+                document.getElementById('score').innerText = `Score: ${score}`;
+            }
+        }
     }
 }
 
-// Function that highlights an object
-function highlightObject(object) {
-    // Unhighlighting the previously clicked object
-    if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
-        selectedObject.material.emissive.setHex(0x000000);
-    }
+function updateMovement(delta) {
+    // Not moving if game is over
+    if  (health == 0) return;
+    let moveVector = new THREE.Vector3();
 
-    if (object.name != "floor" && object.name != "wall") {
-        selectedObject = object;
+    let forward = new THREE.Vector3();
+    camera.getWorldDirection(forward);
 
-        if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
-            selectedObject.material.emissive.setHex(0x777777);
-        }
+    let right = new THREE.Vector3();
+    right.crossVectors(forward, camera.up);
+
+    if (moveForward) moveVector.add(forward);
+    if (moveBackward) moveVector.sub(forward);
+    if (moveLeft) moveVector.sub(right);
+    if (moveRight) moveVector.add(right);
+    if (moveUp) moveVector.y += 0.5;
+    if (moveDown) moveVector.y -= 0.5;
+
+    // Calculating new position
+    moveVector.normalize().multiplyScalar(speed * delta);
+    let newPos = Pos.clone().add(moveVector);
+
+    const safetyMargin = 1;
+    // Raycasting from current position towards movement direction
+    const ray = new THREE.Raycaster(Pos, moveVector, 0, moveVector.length() + safetyMargin);
+    if (!finished) {
+        const intersects = ray.intersectObject(meshUterus, true);
+        // Not moving if collision detected
+        if (intersects.length > 0) return;
     }
     else {
-        selectedObject = null;
+        const intersects = ray.intersectObject(meshTubes, true);
+        // Not moving if collision detected
+        if (intersects.length > 0) return;
     }
+    Pos.copy(newPos);
 }
 
-// Function that moves an object based on the pressed key
-function handleKeyDown(event) {
-    // Only moving if something is selected
-    if (!selectedObject) return;
-
-    const speed = 2;
-    const rotationSpeed = 0.1;
-    if (!isPartOfSofa(selectedObject)) {
-        switch (event.key.toLowerCase()) {
-            case "w":
-                selectedObject.position.z -= speed;
-                break;
-            case "s":
-                selectedObject.position.z += speed;
-                break;
-            case "a":
-                selectedObject.position.x -= speed;
-                break;
-            case "d":
-                selectedObject.position.x += speed;
-                break;
-            case "r":
-                selectedObject.rotation.y += rotationSpeed;
-                break;
+function startTimer() {
+    timerInterval = setInterval(() => {
+        if (health == 0) {
+            document.getElementById('gameover').style.display = 'block';
         }
-    }
-    else {
-        switch (event.key.toLowerCase()) {
-            case "w":
-                selectedObject.position.y += speed;
-                break;
-            case "s":
-                selectedObject.position.y -= speed;
-                break;
-            case "a":
-                selectedObject.position.x -= speed;
-                break;
-            case "d":
-                selectedObject.position.x += speed;
-                break;
-            case "r":
-                selectedObject.rotation.z += rotationSpeed;
-                break;
+        timeLeft--;
+
+        addEnemies();
+        
+        if (timeLeft <= 0) {
+            timeLeft = 120;
+        }
+    }, 1000); // (1 second)
+}
+
+export function decreaseHealth() {
+    if (lastDamageTime - timeLeft >= 3) { 
+        if (health > 0) health--;
+        lastDamageTime = timeLeft;
+
+        const healthElement = document.getElementById('health');
+        if (healthElement) {
+            healthElement.textContent = `Health: ${health}`;
         }
     }
 }
 
-function isPartOfSofa(object) {
-    while (object) {
-        if (object.name === "sofa") return true;
-        object = object.parent;
+function addEnemies() {
+    switch (timeLeft) {
+        case 119:
+            var offset = new THREE.Vector3(30, 0, 0);
+            var newPos = Pos.clone().add(offset);
+            addSperm(newPos, sperms, scene, 1, 2);
+            offset = new THREE.Vector3(10, 0, 0);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 60; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 100:
+            spermsRotationSpeed += 1.5;
+            var offset = new THREE.Vector3(0, 0, 20);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 2);
+            }
+            offset = new THREE.Vector3(-10, 0, 10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 80:
+            var offset = new THREE.Vector3(-20, 20, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 2);
+            }
+            offset = new THREE.Vector3(0, 20, 0);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 60:
+            spermsRotationSpeed += 1.5;
+            var offset = new THREE.Vector3(-30, 0, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(0, 0, 10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 40:
+            var offset = new THREE.Vector3(0, -20, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(0, 20, 0);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 20:
+            spermsRotationSpeed += 1.5;
+            var offset = new THREE.Vector3(-30, 0, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(20, 0, 10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
+        case 0:
+            spermsRotationSpeed += 1;
+            var offset = new THREE.Vector3(0, 20, 0);
+            var newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 5; i++) {
+                addSperm(newPos, sperms, scene, 1, 3);
+            }
+            offset = new THREE.Vector3(-20, 0, -10);
+            newPos = Pos.clone().add(offset);
+            for (let i = 0; i < 30; i++) {
+                addSperm(newPos, sperms, scene, 0, 2);
+            }
+            break;
     }
-    return false;
 }
 
 // Final update loop
-const clock = new THREE.Clock();
-var MyUpdateLoop = function ( )
-{
+var MyUpdateLoop = function () {
     var delta = clock.getDelta();
-    controls.update();
-    // Call the render with the scene and the camera
-    renderer.render(scene,camera);
+
+    camera.position.set(Pos.x, Pos.y, Pos.z);
+    camera.lookAt(Pos.x + Dir.x, Pos.y + Dir.y, Pos.z + Dir.z);
+    camera.updateProjectionMatrix();
+
+    updateSperms(sperms, delta, camera, spermsRotationSpeed);
+
+    // Updating player movement
+    updateMovement(delta);
+
+    renderer.render(scene, camera);
     requestAnimationFrame(MyUpdateLoop);
+
+    flashlight.position.copy(camera.position);
+    flashlight.target.position.copy(camera.position.clone().add(Dir));
 
 };
 requestAnimationFrame(MyUpdateLoop);
 
+function addLighting() {
+    // Ambient light
+    const ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 0.2);
+    scene.add(ambientLight);
 
-// This function is called when the window is resized
-var MyResize = function ( )
-{
-    // get the new sizes
+    // Flashlight that follows the camera
+    const flashlight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 4, 0.9, 1);
+    flashlight.castShadow = true;
+    flashlight.position.copy(camera.position);
+    flashlight.target.position.copy(camera.position.clone().add(Dir));
+    scene.add(flashlight);
+    scene.add(flashlight.target);
+
+    window.flashlight = flashlight;
+}
+
+var MyResize = function () {
     var width = window.innerWidth;
     var height = window.innerHeight;
-    // then update the renderer
-    renderer.setSize(width,height);
-    // and update the aspect ratio of the camera
-    camera.aspect = width/height;
-
-    // update the projection matrix given the new values
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-
-    // and finally render the scene again
-    renderer.render(scene,camera);
+    renderer.render(scene, camera);
 };
 
-// Link the resize of the window to the update of the camera
-window.addEventListener("resize", MyResize);
-// Linking the mouse click to the defined function
-window.addEventListener('click', onMouseClick, false);
-// Linking pressing a key to the defined function
-window.addEventListener("keydown", handleKeyDown);
+
+// ------------------------------- EVENT LISTENERS -------------------------------
+
+window.addEventListener('resize', MyResize);
+pointerLockElement.addEventListener('click', () => {
+    pointerLockElement.requestPointerLock();
+});
+
+document.addEventListener('pointerlockchange', () => {
+    pointerLockEnabled = (document.pointerLockElement === pointerLockElement);
+});
+
+window.addEventListener('mousedown', (event) => {
+    if (event.button === 0) shoot();
+});
+
+window.addEventListener('mousemove', (event) => {
+    if (!pointerLockEnabled) return;
+    const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+    const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+    yaw -= movementX * 0.002;
+    pitch -= movementY * 0.002;
+
+    const maxPitch = Math.PI / 2;
+    pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
+
+    Dir.x = Math.sin(yaw) * Math.cos(pitch);
+    Dir.y = Math.sin(pitch);
+    Dir.z = Math.cos(yaw) * Math.cos(pitch);
+    Dir.normalize();
+});
+
+window.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyW') moveForward = true;
+    if (event.code === 'KeyS') moveBackward = true;
+    if (event.code === 'KeyA') moveLeft = true;
+    if (event.code === 'KeyD') moveRight = true;
+    if (event.code === 'Space') moveUp = true;
+    if (event.code === 'ShiftLeft') moveDown = true;
+});
+
+window.addEventListener('keyup', (event) => {
+    if (event.code === 'KeyW') moveForward = false;
+    if (event.code === 'KeyS') moveBackward = false;
+    if (event.code === 'KeyA') moveLeft = false;
+    if (event.code === 'KeyD') moveRight = false;
+    if (event.code === 'Space') moveUp = false;
+    if (event.code === 'ShiftLeft') moveDown = false;
+});

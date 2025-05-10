@@ -105,3 +105,10 @@ canvas {
   font-size: 32px;
 }
 
+#gameover {
+  position: fixed;
+  top: 40%;
+  left: 35%;
+  font-size: 100px;
+}
+

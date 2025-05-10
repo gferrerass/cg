@@ -103,6 +103,8 @@ function addUterus() {
 
 
 function shoot() {
+    // Not shooting if game is over
+    if (health == 0) return;
     raycaster.set(camera.position, Dir.clone().normalize());
 
     // Collecting all meshes from all Sperm models
@@ -126,9 +128,9 @@ function shoot() {
                 sperm.userData.health -= 1;
 
                 let newColor;
-                if (sperm.userData.health === 1) {
+                if (sperm.userData.health == 1) {
                     newColor = new THREE.Color(0xff0000);
-                } else if (sperm.userData.health === 2) {
+                } else if (sperm.userData.health == 2) {
                     newColor = new THREE.Color(0xffff00);
                 }
                 // Updating colour
@@ -163,6 +165,8 @@ function shoot() {
 }
 
 function updateMovement(delta) {
+    // Not moving if game is over
+    if  (health == 0) return;
     let moveVector = new THREE.Vector3();
 
     let forward = new THREE.Vector3();
@@ -200,6 +204,9 @@ function updateMovement(delta) {
 
 function startTimer() {
     timerInterval = setInterval(() => {
+        if (health == 0) {
+            document.getElementById('gameover').style.display = 'block';
+        }
         timeLeft--;
         const timerElement = document.getElementById('timer');
         timerElement.textContent = `Time left: ${timeLeft}s`;
@@ -368,14 +375,23 @@ function checkGates() {
         scene.remove(meshUterus);
         scene.remove(door1);
         scene.remove(door2);
-
+        
         // 50% chance of adding egg cell
         if (Math.random() < 0.5) {
             // Adding egg cell
             loadAndAddModel("3DModels/cell.glb", newpos, 10, scene, (model, animations) => {});
+             const gameoverElement = document.getElementById('gameover');
+            gameoverElement.textContent = `Victory!`;
+        }
+        else {
+            const gameoverElement = document.getElementById('gameover');
+            gameoverElement.style.left = '25%';
+            gameoverElement.style.fontSize = '32px';
+            gameoverElement.textContent = `Oh no! You picked the wrong Fallopian tube`;
         }
 
         finished = true;
+        document.getElementById('gameover').style.display = 'block';
     }
 
 }
@@ -383,7 +399,6 @@ function checkGates() {
 // Final update loop
 var MyUpdateLoop = function () {
     var delta = clock.getDelta();
-
 
     camera.position.set(Pos.x, Pos.y, Pos.z);
     camera.lookAt(Pos.x + Dir.x, Pos.y + Dir.y, Pos.z + Dir.z);
@@ -401,6 +416,7 @@ var MyUpdateLoop = function () {
     flashlight.target.position.copy(camera.position.clone().add(Dir));
 
     checkGates();
+
 };
 requestAnimationFrame(MyUpdateLoop);
 
