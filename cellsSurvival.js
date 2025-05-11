@@ -23,7 +23,7 @@ function loadAndAddModel(path, position, scale, scene, callback) {
 
 export function addSperm(position, vector, scene, type, healthpoints) {
     if (type == 0) { // Sperm
-        loadAndAddModel("3DModels/sperm.glb", position, 0.1, scene, (model, animations) => {
+        loadAndAddModel("3DModels/sperm.glb", position, 0.5, scene, (model, animations) => {
             model.userData.cell_type = "sperm";
             vector.push(model);
     

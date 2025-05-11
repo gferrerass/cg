@@ -29,7 +29,7 @@ const raycaster = new THREE.Raycaster();
 let pointerLockEnabled = false;
 let score = 0;
 var health = 3;
-var timeLeft = 120;
+var timeLeft = 5;
 var timerInterval;
 var lastDamageTime = 1000;
 
@@ -60,8 +60,8 @@ var meshUterus, meshTubes;
 addUterus();
 
 let sperms = [];
-var spermsRotationSpeed = 2;
-var door1, door2;
+var spermsRotationSpeed = 5;
+var gate1, gate2;
 var material_uterus, geometry_uterus;
 var finished = false;
 
@@ -93,7 +93,7 @@ function addUterus() {
     material_uterus.normalMap = normal_map;
 
     // Uterus geometry
-    geometry_uterus = new THREE.SphereGeometry(25, 32, 32);
+    geometry_uterus = new THREE.SphereGeometry(12.5, 16, 16);
     meshUterus = new THREE.Mesh(geometry_uterus, material_uterus);
     meshUterus.scale.set(1, 2, 1.5);
     meshUterus.rotation.x = Math.PI / 2;
@@ -157,7 +157,7 @@ function shoot() {
                 const index = sperms.indexOf(sperm);
                 if (index > -1) sperms.splice(index, 1);
                 // Increasing score
-                score++;
+                score += 2;
                 document.getElementById('score').innerText = `Score: ${score}`;
             }
         }
@@ -206,19 +206,24 @@ function startTimer() {
     timerInterval = setInterval(() => {
         if (health == 0) {
             document.getElementById('gameover').style.display = 'block';
+            return;
         }
+        if (finished) return;
         timeLeft--;
         const timerElement = document.getElementById('timer');
         timerElement.textContent = `Time left: ${timeLeft}s`;
 
         addEnemies();
+
+        if (timeLeft == 30) spermsRotationSpeed = 6;
         
-        if (timeLeft <= 0) {
+        if (timeLeft == 0) {
             // Displaying time's out message
             //clearInterval(timerInterval);
             const timerElement = document.getElementById('timer');
             timerElement.style.left = '30%';
             timerElement.textContent = `Time's out! The tubes are open!`;
+            addGates();
         }
     }, 1000); // (1 second)
 }
@@ -236,122 +241,52 @@ export function decreaseHealth() {
 }
 
 function addEnemies() {
-    switch (timeLeft) {
-        case 119:
-            var offset = new THREE.Vector3(30, 0, 0);
-            var newPos = Pos.clone().add(offset);
-            addSperm(newPos, sperms, scene, 1, 2);
-            offset = new THREE.Vector3(10, 0, 0);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 60; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 100:
-            spermsRotationSpeed = 3.5;
-            var offset = new THREE.Vector3(0, 0, 20);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 2);
-            }
-            offset = new THREE.Vector3(-10, 0, 10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 80:
-            var offset = new THREE.Vector3(-20, 20, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 2);
-            }
-            offset = new THREE.Vector3(0, 20, 0);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 60:
-            spermsRotationSpeed = 5;
-            var offset = new THREE.Vector3(-30, 0, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(0, 0, 10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 40:
-            var offset = new THREE.Vector3(0, -20, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(0, 20, 0);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 20:
-            spermsRotationSpeed = 6;
-            var offset = new THREE.Vector3(-30, 0, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(20, 0, 10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 0:
-            spermsRotationSpeed = 7;
-            addGates();
-            var offset = new THREE.Vector3(0, 20, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(-20, 0, -10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
+    if (finished) return;
+    var whitecellhealth = 2;
+    if (score > 50) whitecellhealth = 3;
+    if (timeLeft % 3 == 0) { // Adding a white cell every 3 seconds
+        var offsetX = 10 + Math.random() * 10;
+        var offsetY = 10 + Math.random() * 10;
+        var offsetZ = 10 + Math.random() * 10;
+        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var newPos = Pos.clone().add(offset);
+        addSperm(newPos, sperms, scene, 1, whitecellhealth);
     }
+    if (timeLeft % 10 == 0) { // Adding a sperm cell every 10 seconds
+        var offsetX = 10 + Math.random() * 10;
+        var offsetY = 10 + Math.random() * 10;
+        var offsetZ = 10 + Math.random() * 10;
+        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var newPos = Pos.clone().add(offset);
+        addSperm(newPos, sperms, scene, 0, 2);
+    } 
 }
 
 function addGates() {
-    var material_door = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    var geometry_door = new THREE.CylinderGeometry(1, 1, 0.1, 20);
-    door1 = new THREE.Mesh(geometry_door, material_door);
-    door1.position.y = -1;
+    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry_gate = new THREE.CylinderGeometry(1, 1, 0.1, 20);
+    gate1 = new THREE.Mesh(geometry_gate, material_gate);
+    gate1.position.y = -1;
     // Position and rotation
-    door1.position.set(0, 0, 49);
-    door1.rotation.x = Math.PI / 2;
+    gate1.position.set(0, 0, 24.5);
+    gate1.rotation.x = Math.PI / 2;
 
-    scene.add(door1);
+    scene.add(gate1);
 
-    door2 = new THREE.Mesh(geometry_door, material_door);
-    door2.position.y = -1;
+    gate2 = new THREE.Mesh(geometry_gate, material_gate);
+    gate2.position.y = -1;
     // Position and rotation
-    door2.position.set(0, 0, -49);
-    door2.rotation.x = -Math.PI / 2;
+    gate2.position.set(0, 0, -24.5);
+    gate2.rotation.x = -Math.PI / 2;
 
-    scene.add(door2);
+    scene.add(gate2);
 }
 
 function checkGates() {
-    const distanceToDoor1 = door1.position.distanceTo(camera.position);
-    const distanceToDoor2 = door2.position.distanceTo(camera.position);
+    const distanceTogate1 = gate1.position.distanceTo(camera.position);
+    const distanceTogate2 = gate2.position.distanceTo(camera.position);
 
-    if (distanceToDoor1 < 1 || distanceToDoor2 < 1) {
+    if (distanceTogate1 < 1 || distanceTogate2 < 1) {
         sperms.forEach(cell => {
         scene.remove(cell);
         });
@@ -371,10 +306,10 @@ function checkGates() {
         meshTubes.position.copy(newpos);
         scene.add(meshTubes);
 
-        // Removing uterus and doors
+        // Removing uterus and gates
         scene.remove(meshUterus);
-        scene.remove(door1);
-        scene.remove(door2);
+        scene.remove(gate1);
+        scene.remove(gate2);
         
         // 50% chance of adding egg cell
         if (Math.random() < 0.5) {

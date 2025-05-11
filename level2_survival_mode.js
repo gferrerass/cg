@@ -59,8 +59,7 @@ var meshUterus, meshTubes;
 addUterus();
 
 let sperms = [];
-var spermsRotationSpeed = 2;
-var door1, door2;
+var spermsRotationSpeed = 5;
 var material_uterus, geometry_uterus;
 var finished = false;
 
@@ -156,7 +155,7 @@ function shoot() {
                 const index = sperms.indexOf(sperm);
                 if (index > -1) sperms.splice(index, 1);
                 // Increasing score
-                score++;
+                score += 2;
                 document.getElementById('score').innerText = `Score: ${score}`;
             }
         }
@@ -205,12 +204,15 @@ function startTimer() {
     timerInterval = setInterval(() => {
         if (health == 0) {
             document.getElementById('gameover').style.display = 'block';
+            return;
         }
         timeLeft--;
 
         addEnemies();
+
+        if (timeLeft == 30) spermsRotationSpeed += 1;
         
-        if (timeLeft <= 0) {
+        if (timeLeft == 0) {
             timeLeft = 120;
         }
     }, 1000); // (1 second)
@@ -229,94 +231,24 @@ export function decreaseHealth() {
 }
 
 function addEnemies() {
-    switch (timeLeft) {
-        case 119:
-            var offset = new THREE.Vector3(30, 0, 0);
-            var newPos = Pos.clone().add(offset);
-            addSperm(newPos, sperms, scene, 1, 2);
-            offset = new THREE.Vector3(10, 0, 0);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 60; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 100:
-            spermsRotationSpeed += 1.5;
-            var offset = new THREE.Vector3(0, 0, 20);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 2);
-            }
-            offset = new THREE.Vector3(-10, 0, 10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 80:
-            var offset = new THREE.Vector3(-20, 20, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 2);
-            }
-            offset = new THREE.Vector3(0, 20, 0);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 60:
-            spermsRotationSpeed += 1.5;
-            var offset = new THREE.Vector3(-30, 0, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(0, 0, 10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 40:
-            var offset = new THREE.Vector3(0, -20, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(0, 20, 0);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 20:
-            spermsRotationSpeed += 1.5;
-            var offset = new THREE.Vector3(-30, 0, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(20, 0, 10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
-        case 0:
-            spermsRotationSpeed += 1;
-            var offset = new THREE.Vector3(0, 20, 0);
-            var newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 5; i++) {
-                addSperm(newPos, sperms, scene, 1, 3);
-            }
-            offset = new THREE.Vector3(-20, 0, -10);
-            newPos = Pos.clone().add(offset);
-            for (let i = 0; i < 30; i++) {
-                addSperm(newPos, sperms, scene, 0, 2);
-            }
-            break;
+    var whitecellhealth = 2;
+    if (score > 50) whitecellhealth = 3;
+    if (timeLeft % 3 == 0) { // Adding a white cell every 3 seconds
+        var offsetX = 10 + Math.random() * 10;
+        var offsetY = 10 + Math.random() * 10;
+        var offsetZ = 10 + Math.random() * 10;
+        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var newPos = Pos.clone().add(offset);
+        addSperm(newPos, sperms, scene, 1, whitecellhealth);
     }
+    if (timeLeft % 10 == 0) { // Adding a sperm cell every 10 seconds
+        var offsetX = 10 + Math.random() * 10;
+        var offsetY = 10 + Math.random() * 10;
+        var offsetZ = 10 + Math.random() * 10;
+        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var newPos = Pos.clone().add(offset);
+        addSperm(newPos, sperms, scene, 0, 2);
+    } 
 }
 
 // Final update loop
