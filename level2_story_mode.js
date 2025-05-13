@@ -11,7 +11,7 @@ document.body.appendChild(renderer.domElement);
 var ratio = window.innerWidth / window.innerHeight;
 
 // Creating the perspective camera
-var camera = new THREE.PerspectiveCamera(45, ratio, 0.00001, 1000);
+var camera = new THREE.PerspectiveCamera(45, ratio, 0.01, 1000);
 var Pos = new THREE.Vector3(0, 0, 0);
 camera.position.set(Pos.x, Pos.y, Pos.z);
 var Dir = new THREE.Vector3(0, 0, 1);
@@ -31,7 +31,7 @@ let score = 0;
 var health = 3;
 var timeLeft = 10;
 var timerInterval;
-var lastDamageTime = 1000;
+var lastDamageTime = 0;
 
 // Rotation around the Y-Axis (horizontally)
 var yaw = 0;
@@ -209,15 +209,17 @@ function startTimer() {
             return;
         }
         if (finished) return;
-        timeLeft--;
-        const timerElement = document.getElementById('timer');
-        timerElement.textContent = `Time left: ${timeLeft}s`;
-
         addEnemies();
 
-        if (timeLeft == 30) spermsRotationSpeed = 6;
-        
-        if (timeLeft == 0) {
+        // Update time left
+        if (timeLeft > 0) {
+            timeLeft--;
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = `Time left: ${timeLeft}s`;
+            if (timeLeft == 30) spermsRotationSpeed = 6;
+        }
+        else {
+            // Time's out
             // Displaying time's out message
             //clearInterval(timerInterval);
             const timerElement = document.getElementById('timer');
@@ -229,9 +231,11 @@ function startTimer() {
 }
 
 export function decreaseHealth() {
-    if (lastDamageTime - timeLeft >= 3) { 
+    const currentTime = performance.now();
+
+    if (currentTime - lastDamageTime >= 1000) { // 1 second cooldown
         if (health > 0) health--;
-        lastDamageTime = timeLeft;
+        lastDamageTime = currentTime;
 
         const healthElement = document.getElementById('health');
         if (healthElement) {
@@ -263,7 +267,7 @@ function addEnemies() {
 }
 
 function addGates() {
-    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true });
     var geometry_gate = new THREE.CylinderGeometry(1, 1, 0.1, 20);
     gate1 = new THREE.Mesh(geometry_gate, material_gate);
     gate1.position.y = -1;

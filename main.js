@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 
-var logo;
+// MAIN MENU VIEW
 
+// Display the logo and the buttons for Level 1 and Level 2
+var logo;
 placelogo(10,50);
 createMenu();
 
 
+// Create the main menu with buttons for Level 1 and Level 2
 function createMenu() {
     const oldMenu = document.getElementById('menu');
     if (oldMenu) oldMenu.remove();
@@ -24,35 +27,39 @@ function createMenu() {
     menu.appendChild(button1);
     menu.appendChild(button2);
     document.body.appendChild(menu);
-  }
+}
   
-  function createModeMenu(levelName) {
-    const oldMenu = document.getElementById('menu');
-    if (oldMenu) oldMenu.remove();
-  
-    const modeMenu = document.createElement('div');
-    modeMenu.id = 'menu';
-  
-    const mode1 = document.createElement('button');
-    mode1.innerText = 'Story Mode';
-    mode1.onclick = () => startLevel(`${levelName}_story_mode`);
-  
-    const mode2 = document.createElement('button');
-    mode2.innerText = 'Survival Mode';
-    mode2.onclick = () => startLevel(`${levelName}_survival_mode`);
-  
-    const goBack = document.createElement('button');
-    goBack.innerText = 'Go Back';
-    goBack.classList.add('go-back');
-    goBack.onclick = () => createMenu();
-  
-    modeMenu.appendChild(mode1);
-    modeMenu.appendChild(mode2);
-    modeMenu.appendChild(goBack);
-  
-    document.body.appendChild(modeMenu);
-  }
+// Create the mode menu with buttons for Story Mode and Survival Mode
+function createModeMenu(levelName) {
+  const oldMenu = document.getElementById('menu');
+  if (oldMenu) oldMenu.remove();
 
+  const modeMenu = document.createElement('div');
+  modeMenu.id = 'menu';
+
+  const mode1 = document.createElement('button');
+  mode1.innerText = 'Story Mode';
+  // On click, load the selected level on story mode
+  mode1.onclick = () => startLevel(`${levelName}_story_mode`);
+
+  const mode2 = document.createElement('button');
+  mode2.innerText = 'Survival Mode';
+  // On click, load the selected level on survival mode
+  mode2.onclick = () => startLevel(`${levelName}_survival_mode`);
+
+  const goBack = document.createElement('button');
+  goBack.innerText = 'Go Back';
+  goBack.classList.add('go-back');
+  goBack.onclick = () => createMenu();
+
+  modeMenu.appendChild(mode1);
+  modeMenu.appendChild(mode2);
+  modeMenu.appendChild(goBack);
+
+  document.body.appendChild(modeMenu);
+}
+
+// Start the selected level
 function startLevel(levelName) {
     const menu = document.getElementById('menu');
     menu.remove();
@@ -60,6 +67,7 @@ function startLevel(levelName) {
     import(`./${levelName}.js`);
 }
 
+// Place the game's logo on the screen
 function placelogo(positiontop, positionleft) {
     logo = document.createElement('img');
     logo.src = 'images/name_and_logo.png';
