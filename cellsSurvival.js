@@ -67,6 +67,11 @@ export function addSperm(position, vector, scene, type, healthpoints) {
 
 export function updateSperms(sperms, deltaTime, camera, rotationSpeed) {
     sperms.forEach(sperm => {
+        // Adjusting speed depending on cell type
+        var actualSpeed = rotationSpeed;
+        if (sperm.userData.cell_type != "leukocyte") {
+            actualSpeed += 1;
+        }
         // Updating rotation
         // Rotating smoothly towards the camera
         const targetQuaternion = new THREE.Quaternion();
@@ -85,7 +90,7 @@ export function updateSperms(sperms, deltaTime, camera, rotationSpeed) {
         }
         
         // Smoothly interpolating toward the desired rotation
-        sperm.quaternion.slerp(targetQuaternion, deltaTime * rotationSpeed);
+        sperm.quaternion.slerp(targetQuaternion, deltaTime * actualSpeed);
 
         // Saving the current rotation for the next frame
         sperm.userData.previousQuaternion = sperm.quaternion.clone();
@@ -123,7 +128,7 @@ export function updateSperms(sperms, deltaTime, camera, rotationSpeed) {
             finalDirection.add(separationForce).normalize();
         }
         // Applying movement
-        sperm.position.add(finalDirection.multiplyScalar(deltaTime * rotationSpeed));
+        sperm.position.add(finalDirection.multiplyScalar(deltaTime * actualSpeed));
 
         // Updating animation
         if (sperm.userData.mixer) {

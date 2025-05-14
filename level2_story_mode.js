@@ -211,12 +211,15 @@ function startTimer() {
         if (finished) return;
         addEnemies();
 
+        timeLeft--;
         // Update time left
         if (timeLeft > 0) {
-            timeLeft--;
             const timerElement = document.getElementById('timer');
             timerElement.textContent = `Time left: ${timeLeft}s`;
             if (timeLeft == 30) spermsRotationSpeed = 6;
+        }
+        else if (timeLeft == 0) {
+            addGates();
         }
         else {
             // Time's out
@@ -225,7 +228,6 @@ function startTimer() {
             const timerElement = document.getElementById('timer');
             timerElement.style.left = '30%';
             timerElement.textContent = `Time's out! The tubes are open!`;
-            addGates();
         }
     }, 1000); // (1 second)
 }
@@ -244,30 +246,30 @@ export function decreaseHealth() {
     }
 }
 
+// Generates a random number between 10 and 20 or -10 and -20
+function randomPos() {
+    const sign = Math.random() < 0.5 ? -1 : 1;
+    return sign * (10 + Math.random() * 10);
+}
+
 function addEnemies() {
     if (finished) return;
     var whitecellhealth = 2;
     if (score > 50) whitecellhealth = 3;
     if (timeLeft % 3 == 0) { // Adding a white cell every 3 seconds
-        var offsetX = 10 + Math.random() * 10;
-        var offsetY = 10 + Math.random() * 10;
-        var offsetZ = 10 + Math.random() * 10;
-        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var offset = new THREE.Vector3(randomPos(), randomPos(), randomPos());
         var newPos = Pos.clone().add(offset);
         addSperm(newPos, sperms, scene, 1, whitecellhealth);
     }
     if (timeLeft % 10 == 0) { // Adding a sperm cell every 10 seconds
-        var offsetX = 10 + Math.random() * 10;
-        var offsetY = 10 + Math.random() * 10;
-        var offsetZ = 10 + Math.random() * 10;
-        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var offset = new THREE.Vector3(randomPos(), randomPos(), randomPos());
         var newPos = Pos.clone().add(offset);
         addSperm(newPos, sperms, scene, 0, 2);
     } 
 }
 
 function addGates() {
-    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true });
+    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
     var geometry_gate = new THREE.CylinderGeometry(1, 1, 0.1, 20);
     gate1 = new THREE.Mesh(geometry_gate, material_gate);
     gate1.position.y = -1;

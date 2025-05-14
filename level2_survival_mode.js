@@ -91,7 +91,7 @@ function addUterus() {
     material_uterus.normalMap = normal_map;
 
     // Uterus geometry
-    geometry_uterus = new THREE.SphereGeometry(25, 32, 32);
+    geometry_uterus = new THREE.SphereGeometry(12.5, 16, 16);
     meshUterus = new THREE.Mesh(geometry_uterus, material_uterus);
     meshUterus.scale.set(1, 2, 1.5);
     meshUterus.rotation.x = Math.PI / 2;
@@ -230,22 +230,23 @@ export function decreaseHealth() {
     }
 }
 
+// Generates a random number between 10 and 20 or -10 and -20
+function randomPos() {
+    const sign = Math.random() < 0.5 ? -1 : 1;
+    return sign * (10 + Math.random() * 10);
+}
+
 function addEnemies() {
+    if (finished) return;
     var whitecellhealth = 2;
     if (score > 50) whitecellhealth = 3;
     if (timeLeft % 3 == 0) { // Adding a white cell every 3 seconds
-        var offsetX = 10 + Math.random() * 10;
-        var offsetY = 10 + Math.random() * 10;
-        var offsetZ = 10 + Math.random() * 10;
-        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var offset = new THREE.Vector3(randomPos(), randomPos(), randomPos());
         var newPos = Pos.clone().add(offset);
         addSperm(newPos, sperms, scene, 1, whitecellhealth);
     }
     if (timeLeft % 10 == 0) { // Adding a sperm cell every 10 seconds
-        var offsetX = 10 + Math.random() * 10;
-        var offsetY = 10 + Math.random() * 10;
-        var offsetZ = 10 + Math.random() * 10;
-        var offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
+        var offset = new THREE.Vector3(randomPos(), randomPos(), randomPos());
         var newPos = Pos.clone().add(offset);
         addSperm(newPos, sperms, scene, 0, 2);
     } 
