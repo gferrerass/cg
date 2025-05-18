@@ -17,11 +17,11 @@ function createMenu() {
     menu.id = 'menu';
   
     const button1 = document.createElement('button');
-    button1.innerText = 'Level 1';
+    button1.innerText = 'L1 - Vag Crash';
     button1.onclick = () => createModeMenu('level1');
   
     const button2 = document.createElement('button');
-    button2.innerText = 'Level 2';
+    button2.innerText = 'L2 - Uterus Splash';
     button2.onclick = () => createModeMenu('level2');
   
     menu.appendChild(button1);

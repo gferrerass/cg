@@ -23,8 +23,7 @@ document.body.appendChild(renderer.domElement);
 // For orbit controls, to move around the scene
 var controls = new OrbitControls(camera, renderer.domElement);
 
-// ------------------------------- MAIN CODE -------------------------------
-
+// LIGHTING
 // Add an ambient light to the scene
 // const light = new THREE.AmbientLight(0xffffff, 1);
 // scene.add(light);
@@ -34,14 +33,22 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(0, 0, 1);
 scene.add(directionalLight);
 
+// ------------------------------- MAIN CODE -------------------------------
+
+// GUI variables
+var score = 0;
+var timeLeft = 100;
+var timerInterval;
+var gameFinished = false;
+
 const loader = new GLTFLoader();
 const enemies = [];
 
 // Array of tuples with path to the model and scale of the model
 const enemyModels = [
     { path: "3DModels/leukocyte.glb", scale: 70 },
-    { path: "3DModels/leukocyte_simple.glb", scale: 0.25 },
-    { path: "3DModels/leukocyte_angry.glb", scale: 2 },
+    // { path: "3DModels/leukocyte_simple.glb", scale: 0.25 },
+    // { path: "3DModels/leukocyte_angry.glb", scale: 2 },
 ];
 
 let sperm;
@@ -56,25 +63,57 @@ const keys = {
 
 const mixers = []; // Stores animation mixers (for sperm movement)
 
+// Display the score and timer
+document.getElementById('score').style.display = 'block';
+document.getElementById('timer').style.display = 'block';
+
 spawnSperm();
 
 const clock = new THREE.Clock(); // clock for frame rate independent motion
 startEnemySpawner();
 animate(); // Start the animation loop
+startTimer(); // Start the timer countdown
 
 // ------------------------------- FUNCTIONS -------------------------------
 
 function animate() {
-    requestAnimationFrame(animate);
-    const delta = clock.getDelta(); // Get time delta for smooth animation
-    // Update animations
-    const speedFactor = 2.5; // Adjust this value to make the animation faster
-    mixers.forEach((mixer) => mixer.update(delta * speedFactor));
-    controls.update();
-    updatesperm();
-    updateEnemies(delta);
+    //if (gameFinished) return; // Stop the animation loop if the game is finished
+    if (gameFinished) {
+        // For orbit controls to work when the game is finished
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    } else {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta(); // Get time delta for smooth animation
+        // Update animations
+        const speedFactor = 2.5; // Speed of the sperm swim animation
+        mixers.forEach((mixer) => mixer.update(delta * speedFactor));
+        controls.update();
+        updatesperm();
+        updateEnemies(delta);
 
-    renderer.render(scene, camera);
+        renderer.render(scene, camera);
+    }
+}
+
+// Starts timer countdown and when it reaches 0, ends the game
+function startTimer() {
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        score++;
+        document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
+        document.getElementById('score').innerText = `Score: ${score}`;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            gameFinished = true;
+            const timerElement = document.getElementById('timer');
+            timerElement.style.left = '23%';
+            timerElement.textContent = `Time's out! You made it through the Vag-Crash!`;
+            endGame(true); // Level passed, player wins
+        }
+    }, 1000);   // 1 second interval
 }
 
 function spawnSperm() {
@@ -128,6 +167,25 @@ function spawnEnemy() {
 
 // Update the position of all enemies every frame and remove them when they reach behind the camera
 function updateEnemies(delta) {
+    // If the sperm model hasn't loaded yet, return
+    if (!sperm) return;
+
+    // Wrap the sperm in a hit box to check for collisions
+    const spermCenter = sperm.localToWorld(new THREE.Vector3(0, 0.3, 0)); // Get sperm coordinates
+    const spermSize = new THREE.Vector3(1.5, 1, 7.0); // Make custom hit box
+    const spermBox = new THREE.Box3().setFromCenterAndSize(spermCenter, spermSize);
+
+    // Visualize the hit box (debug) 
+    if (!sperm.customHelper) {
+        const helper = new THREE.Box3Helper(spermBox, 0x00ff00);
+        scene.add(helper);
+        sperm.customHelper = helper;
+    } else {
+        // Update the helper's box
+        sperm.customHelper.box.copy(spermBox);
+        sperm.customHelper.updateMatrixWorld(true);
+    }
+
     // Iterate backwards to safely remove enemies while iterating
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
@@ -138,10 +196,42 @@ function updateEnemies(delta) {
         // Rotate the enemy
         enemy.rotation.x += delta * 0.5;
         enemy.rotation.y += delta * 0.5;
+        
+        // Create a bounding sphere for the enemy
+        const boundingBox = new THREE.Box3().setFromObject(enemy);
+        // Shrink the sphere to better fit the model
+        const center = boundingBox.getCenter(new THREE.Vector3());
+        const radius = boundingBox.getSize(new THREE.Vector3()).length() * 0.18;
+        const enemySphere = new THREE.Sphere(center, radius);
 
+        // Draw sphere helper (debug)
+        if (!enemy.sphereHelper) {
+            const sphereGeo = new THREE.SphereGeometry(radius, 12, 12);
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+            const helperMesh = new THREE.Mesh(sphereGeo, wireMat);
+            helperMesh.position.copy(center);
+            scene.add(helperMesh);
+            enemy.sphereHelper = helperMesh;
+        } else {
+            enemy.sphereHelper.position.copy(center);
+            enemy.sphereHelper.scale.setScalar(radius / enemy.sphereHelper.geometry.parameters.radius);
+        }
+
+        // Check for collision between the sperm and the enemy
+        if (spermBox.intersectsSphere(enemySphere)) {
+            // Collision detected
+            clearInterval(timerInterval);   // Stop the timer
+            gameFinished = true;    // Set game finished to true
+            endGame(false);   // Player loses
+            return;
+        }
+        
         // Remove the enemy when it reaches behind the camera
         if (enemy.position.z > camera.position.z + 5) {
             scene.remove(enemy); // Remove the enemy from the scene
+            if (enemy.sphereHelper) {   // Remove the sphere helper if it exists
+                scene.remove(enemy.sphereHelper);
+            }
             enemies.splice(i, 1); // Remove the enemy from the array
         }
     }
@@ -169,13 +259,17 @@ function updatesperm() {
     camera.lookAt(sperm.position.x, sperm.position.y, -50);
 }
 
-// Load a 3D model from a path and return a promise that resolves with the loaded model
-function load3DModel(path) {
-    return new Promise((resolve, reject) => {
-        loader.load(path, (gltf) => {
-        resolve(gltf.scene);
-        });
-    });
+function endGame(win) {
+    // Stop the timer
+    clearInterval(timerInterval);
+
+    if (win) {
+        // Show win message
+        document.getElementById('win').style.display = 'block';
+    } else {
+        // Show game over message
+        document.getElementById('gameover').style.display = 'block';
+    }
 }
 
 // (From class) This function is called when the window is resized

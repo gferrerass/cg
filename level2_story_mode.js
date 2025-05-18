@@ -27,7 +27,7 @@ const raycaster = new THREE.Raycaster();
 
 // GUI variables
 let pointerLockEnabled = false;
-let score = 0;
+var score = 0;
 var health = 3;
 var timeLeft = 10;
 var timerInterval;
