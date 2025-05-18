@@ -1,290 +1,200 @@
+// ------------------------------- IMPORTS -------------------------------
 import * as THREE from "three";
 import { OrbitControls } from "./build/controls/OrbitControls.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
 
-// Creating the scene
-var scene = new THREE.Scene( );
+// ------------------------------- SETUP -------------------------------
+const scene = new THREE.Scene();
 
-// Creating the webgl renderer
-var renderer = new THREE.WebGLRenderer( );
-renderer.setSize(window.innerWidth,window.innerHeight);
-// Enabling shadow map rendering
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-// Adding the renderer to the current document
+const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+camera.position.set(0, 2, 10);
+camera.lookAt(0, 0, -50);
+
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+// Add the renderer to the current document
 document.body.appendChild(renderer.domElement);
 
-// Creating the perspective camera
-var ratio = window.innerWidth/window.innerHeight;
-const camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
-camera.position.set(0, 40, 50);
-camera.lookAt(0, 0, 0);
-
-// Setting up orbit controls
+// For orbit controls, to move around the scene
 var controls = new OrbitControls(camera, renderer.domElement);
 
-// Setting up lights
-addLighting();
+// ------------------------------- MAIN CODE -------------------------------
 
-// Setting up texture loader
-const textureLoader = new THREE.TextureLoader();
+// Add an ambient light to the scene
+// const light = new THREE.AmbientLight(0xffffff, 1);
+// scene.add(light);
 
-// Setting up 3D model loader
+// Add a directional light to the scene
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(0, 0, 1);
+scene.add(directionalLight);
+
 const loader = new GLTFLoader();
+const enemies = [];
 
-// Global variables for objects
-let chair, desk, sofa;
+// Array of tuples with path to the model and scale of the model
+const enemyModels = [
+    { path: "3DModels/leukocyte.glb", scale: 70 },
+    { path: "3DModels/leukocyte_simple.glb", scale: 0.25 },
+    { path: "3DModels/leukocyte_angry.glb", scale: 2 },
+];
 
-// Global variables for clicking objects
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let selectedObject = null;
+let sperm;
+const spermSpeed = 0.5;
+const movementLimits = { x: 12, y: 7 };
+const keys = {
+    ArrowUp: false,
+    ArrowDown: false,
+    ArrowLeft: false,
+    ArrowRight: false,
+};
 
-///////////////////////////////////////////////////////////////////////////////////    
+const mixers = []; // Stores animation mixers (for sperm movement)
 
-// Loading chair
-loadAndAddModel("3DModels/chair.glb", new THREE.Vector3(-10, 0, -15), 10, (model) => {
-    chair = model;
-    chair.rotation.y = Math.PI ;
-});
+spawnSperm();
 
-// Loading desk
-loadAndAddModel("3DModels/desk.glb", new THREE.Vector3(-10, 0, -20), 10, (model) => {
-    desk = model;
-});
+const clock = new THREE.Clock(); // clock for frame rate independent motion
+startEnemySpawner();
+animate(); // Start the animation loop
 
-// Loading sofa
-loadAndAddModel("3DModels/sofa.glb", new THREE.Vector3(15, 0, 0), 0.1, (model) => {
-    sofa = model;
-    sofa.name = "sofa";
-});
+// ------------------------------- FUNCTIONS -------------------------------
 
-// Loading floor
-textureLoader.load('textures/floor.jpg', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 5);
-    const floorMaterial = new THREE.MeshStandardMaterial({ map: texture });
+function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta(); // Get time delta for smooth animation
+    // Update animations
+    const speedFactor = 2.5; // Adjust this value to make the animation faster
+    mixers.forEach((mixer) => mixer.update(delta * speedFactor));
+    controls.update();
+    updatesperm();
+    updateEnemies(delta);
 
-    // Creating floor
-    const floorGeometry = new THREE.PlaneGeometry(50, 50);
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.name = "floor";
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    scene.add(floor);
-});
+    renderer.render(scene, camera);
+}
 
-// Loading wall
-textureLoader.load('textures/wall.jfif', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 3);
-    const wallMaterial = new THREE.MeshStandardMaterial({ map: texture });
+function spawnSperm() {
+    loader.load("3DModels/sperm.glb", (gltf) => {
+        sperm = gltf.scene;
+        sperm.position.set(0, -2, -6);
+        sperm.scale.setScalar(0.8);
+        // Rotate the sperm so it faces away from the camera
+        sperm.rotation.y = Math.PI;
+        scene.add(sperm);
 
-    // Creating wall
-    const wallGeometry = new THREE.PlaneGeometry(50, 30);
-    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-    wall.name = "wall";
-    wall.position.y = 15;
-    wall.position.z = -25;
-    wall.receiveShadow = true;
-    scene.add(wall);
-});
-
-// Loading brick wall
-textureLoader.load('textures/brick.jfif', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 3);
-    const wallMaterial = new THREE.MeshStandardMaterial({ map: texture });
-
-    // Creating wall
-    const wallGeometry = new THREE.PlaneGeometry(50, 30);
-    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-    wall.name = "wall";
-    wall.position.y = 15;
-    wall.position.x = 25;
-    wall.rotation.y = -Math.PI / 2;
-    wall.receiveShadow = true;
-    scene.add(wall);
-});
-/////////////////////////////////////////////////////////////////////////////////// 
-
-
-function loadAndAddModel(path, position, scale, callback) {
-    loader.load(path, (gltf) => {
-        const model = gltf.scene;
-        model.position.copy(position);
-        model.scale.setScalar(scale);
-
-        // Enabling shadows on all mesh children
-        model.traverse((child) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
+        // Set up animation mixer
+        const mixer = new THREE.AnimationMixer(sperm);
+        gltf.animations.forEach((clip) => {
+            console.log(clip);
+            const action = mixer.clipAction(clip);
+            action.play(); // Play the animation
         });
-
-        scene.add(model);
-        callback(model);
+        mixers.push(mixer);
     });
 }
 
-function addLighting() {
-    // Adding a soft ambient light inside a room
-    const ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 0.5);
-    scene.add(ambientLight);
+function spawnEnemy() {
+    // Randomly select an enemy model by generating a random index between 0 and enemyModels.length-1
+    const model = enemyModels[Math.floor(Math.random() * enemyModels.length)];
 
-    // Adding a point light from the ceiling
-    const pointLight = new THREE.PointLight(new THREE.Color(1, 1, 1), 0.8, 100);
-    pointLight.position.set(0, 30, 0);
-    // Enabling shadow casting for point light
-    pointLight.castShadow = true;
-    // Setting up shadow quality
-    pointLight.shadow.mapSize.width = 1024;
-    pointLight.shadow.mapSize.height = 1024;
-    // Correcting shadow acne
-    pointLight.shadow.bias = -0.005;
-    scene.add(pointLight);
+    // Load the selected model
+    loader.load(model.path, (gltf) => {
+        const enemy = gltf.scene;
+        const randomScale = (Math.random() + 0.5) * model.scale;
+        enemy.scale.setScalar(randomScale);
 
-    // Adding a small light that follows the camera
-    const cameraLight = new THREE.PointLight(new THREE.Color(1, 1, 1), 0.2);
-    camera.add(cameraLight);
-    scene.add(camera);
+        // Randomize position at the horizon
+        enemy.position.set(
+            Math.random() * 30 - 15, // Random x position between -15 and 15
+            Math.random() * 20 - 10, // Random y position between -10 and 10
+            -100
+        );
+
+        // Random rotation
+        enemy.rotation.set(
+            Math.random() * 2 * Math.PI,
+            Math.random() * 2 * Math.PI,
+            Math.random() * 2 * Math.PI
+        );
+
+        scene.add(enemy);
+        enemies.push(enemy);
+    });
 }
 
-// Function that detects when an object is clicked on
-function onMouseClick(event) {
-    // Normalising mouse coordinates (-1 to +1)
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+// Update the position of all enemies every frame and remove them when they reach behind the camera
+function updateEnemies(delta) {
+    // Iterate backwards to safely remove enemies while iterating
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
 
-    raycaster.setFromCamera(mouse, camera);
+        // Move the enemy towards the screen (positive z-axis)
+        enemy.position.z += delta * 50;
 
-    // Getting all intersected objects
-    const intersects = raycaster.intersectObjects(scene.children, true);
+        // Rotate the enemy
+        enemy.rotation.x += delta * 0.5;
+        enemy.rotation.y += delta * 0.5;
 
-    if (intersects.length > 0) {
-        // Highlighting clicked object 
-        const clickedMesh = intersects[0].object;
-        highlightObject(clickedMesh);
-    }
-}
-
-// Function that highlights an object
-function highlightObject(object) {
-    // Unhighlighting the previously clicked object
-    if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
-        selectedObject.material.emissive.setHex(0x000000);
-    }
-
-    if (object.name != "floor" && object.name != "wall") {
-        selectedObject = object;
-
-        if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
-            selectedObject.material.emissive.setHex(0x777777);
-        }
-    }
-    else {
-        selectedObject = null;
-    }
-}
-
-// Function that moves an object based on the pressed key
-function handleKeyDown(event) {
-    // Only moving if something is selected
-    if (!selectedObject) return;
-
-    const speed = 2;
-    const rotationSpeed = 0.1;
-    if (!isPartOfSofa(selectedObject)) {
-        switch (event.key.toLowerCase()) {
-            case "w":
-                selectedObject.position.z -= speed;
-                break;
-            case "s":
-                selectedObject.position.z += speed;
-                break;
-            case "a":
-                selectedObject.position.x -= speed;
-                break;
-            case "d":
-                selectedObject.position.x += speed;
-                break;
-            case "r":
-                selectedObject.rotation.y += rotationSpeed;
-                break;
-        }
-    }
-    else {
-        switch (event.key.toLowerCase()) {
-            case "w":
-                selectedObject.position.y += speed;
-                break;
-            case "s":
-                selectedObject.position.y -= speed;
-                break;
-            case "a":
-                selectedObject.position.x -= speed;
-                break;
-            case "d":
-                selectedObject.position.x += speed;
-                break;
-            case "r":
-                selectedObject.rotation.z += rotationSpeed;
-                break;
+        // Remove the enemy when it reaches behind the camera
+        if (enemy.position.z > camera.position.z + 5) {
+            scene.remove(enemy); // Remove the enemy from the scene
+            enemies.splice(i, 1); // Remove the enemy from the array
         }
     }
 }
 
-function isPartOfSofa(object) {
-    while (object) {
-        if (object.name === "sofa") return true;
-        object = object.parent;
-    }
-    return false;
+// Spawns a new enemy every 200ms
+function startEnemySpawner() {
+    setInterval(spawnEnemy, 200);
 }
 
-// Final update loop
-const clock = new THREE.Clock();
-var MyUpdateLoop = function ( )
-{
-    var delta = clock.getDelta();
-    controls.update();
-    // Call the render with the scene and the camera
-    renderer.render(scene,camera);
-    requestAnimationFrame(MyUpdateLoop);
+function updatesperm() {
+    if (!sperm) return;
 
-};
-requestAnimationFrame(MyUpdateLoop);
+    if (keys.ArrowUp && sperm.position.y < movementLimits.y)
+        sperm.position.y += spermSpeed;
+    if (keys.ArrowDown && sperm.position.y > -movementLimits.y)
+        sperm.position.y -= spermSpeed;
+    if (keys.ArrowLeft && sperm.position.x > -movementLimits.x)
+        sperm.position.x -= spermSpeed;
+    if (keys.ArrowRight && sperm.position.x < movementLimits.x)
+        sperm.position.x += spermSpeed;
 
+    // Keep the camera centered on the sperm
+    camera.position.set(sperm.position.x, sperm.position.y + 3, 10);
+    camera.lookAt(sperm.position.x, sperm.position.y, -50);
+}
 
-// This function is called when the window is resized
-var MyResize = function ( )
-{
-    // get the new sizes
+// Load a 3D model from a path and return a promise that resolves with the loaded model
+function load3DModel(path) {
+    return new Promise((resolve, reject) => {
+        loader.load(path, (gltf) => {
+        resolve(gltf.scene);
+        });
+    });
+}
+
+// (From class) This function is called when the window is resized
+function MyResize() {
     var width = window.innerWidth;
     var height = window.innerHeight;
-    // then update the renderer
-    renderer.setSize(width,height);
-    // and update the aspect ratio of the camera
-    camera.aspect = width/height;
-
-    // update the projection matrix given the new values
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
+}
 
-    // and finally render the scene again
-    renderer.render(scene,camera);
-};
+// ------------------------------- EVENT LISTENERS -------------------------------
 
 // Link the resize of the window to the update of the camera
 window.addEventListener("resize", MyResize);
-// Linking the mouse click to the defined function
-window.addEventListener('click', onMouseClick, false);
-// Linking pressing a key to the defined function
-window.addEventListener("keydown", handleKeyDown);
+window.addEventListener("keydown", (event) => {
+    if (event.key in keys) keys[event.key] = true;
+});
+window.addEventListener("keyup", (event) => {
+    if (event.key in keys) keys[event.key] = false;
+});
