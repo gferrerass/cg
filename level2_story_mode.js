@@ -270,7 +270,7 @@ function addEnemies() {
 }
 
 function addGates() {
-    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true });
     var geometry_gate = new THREE.CylinderGeometry(1, 1, 0.1, 20);
     gate1 = new THREE.Mesh(geometry_gate, material_gate);
     gate1.position.y = -1;
@@ -327,7 +327,7 @@ function checkGates() {
         }
         else {
             const gameoverElement = document.getElementById('gameover');
-            gameoverElement.style.left = '25%';
+            gameoverElement.style.left = '50%';
             gameoverElement.style.fontSize = '32px';
             gameoverElement.textContent = `Oh no! You picked the wrong Fallopian tube`;
         }
