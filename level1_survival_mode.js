@@ -106,6 +106,9 @@ function animate() {
     updatesperm();
     updateEnemies(delta);
 
+    // Update the camera
+    updateCamera();
+
     // Move the vaginal canal texture to simulate forward movement
     if (vaginalTexture) {
         vaginalTexture.offset.y -= 0.019 * delta * enemySpeed; // The speed depends on the enemy speed
@@ -113,6 +116,22 @@ function animate() {
 
     // Render the scene
     renderer.render(scene, camera);
+}
+
+function updateCamera() {
+    // Camera follows the sperm smoothly
+    if (sperm) {
+        // Define the target position to interpolate towards
+        const targetPosition = new THREE.Vector3(
+            sperm.position.x,
+            sperm.position.y + 3,  // A little above the sperm for a better view
+            sperm.position.z + 14  // Behind the sperm
+        );
+        // Interpolate the camera position smoothly towards the target
+        camera.position.lerp(targetPosition, 0.2);
+        // Make the camera look ahead from the sperm
+        camera.lookAt(sperm.position.x, sperm.position.y, -50);
+    }
 }
 
 function addVaginalCanal() {
@@ -370,10 +389,6 @@ function updatesperm() {
     if (keys.ArrowRight && sperm.position.x < movementLimits.right) {
         sperm.position.x += spermSpeed;
     }
-
-    // Keep the camera centered on the sperm
-    camera.position.set(sperm.position.x, sperm.position.y + 3, 10);
-    camera.lookAt(sperm.position.x, sperm.position.y, -50);
 }
 
 function endGame(win) {
