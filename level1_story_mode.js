@@ -48,11 +48,16 @@ const clock = new THREE.Clock(); // clock for frame rate independent motion
 
 // ENEMY VARIABLES
 const enemies = [];
-let enemySpeed = 50; // Speed of the enemies
 // Array of tuples with path to the model and scale of the model (only one model for now)
 const enemyModels = [
     { path: "3DModels/leukocyte.glb", scale: 90 }
 ];
+let difficulty = 0.4; // Increases over time
+let enemySpeed = 50 * difficulty; // Speed of the enemies
+const maxDifficulty = 1.00; // Maximum difficulty (the max in story mode is lower than in survival mode)
+let spawnInterval = 100;    // Initial enemy spawn interval in milliseconds
+let currentInterval = spawnInterval / difficulty; // Current enemy spawn interval based on difficulty
+let spawner; // To store the spawn interval id
 
 // SPERM VARIABLES
 let sperm;
@@ -154,15 +159,29 @@ function addVaginalCanal() {
 // If the countdown reaches 0, it ends the game as a win
 function startGame() {
     timerInterval = setInterval(() => {
-        if (timeLeft == 60) {   // Wait 1 second before spawning enemies
-            startEnemySpawner();
+        if (score == 0) {   // Wait 1 second before spawning enemies
+            // Start enemy spawner loop after 1 second
+            enemySpawnerLoop();
         }
+        // Update time left and score
         timeLeft--;
         score++;
-        spermAnimationSpeed += 0.04; // Increase the speed of the sperm swim animation
+
+        // Increase the difficulty slowly every second
+        if (difficulty < maxDifficulty) {
+            difficulty += 0.02; // Increase difficulty
+            currentInterval = spawnInterval / difficulty; // Update the enemy spawn interval
+            enemySpeed = 50 * difficulty;   // Update the enemy speed
+        }
+
+        // Increase the speed of the sperm swim animation
+        spermAnimationSpeed += 0.04;
+
+        // Display updated score and time left
         document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
         document.getElementById('score').innerText = `Score: ${score}`;
 
+        // Check if time is up
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             gameFinished = true;
@@ -268,9 +287,12 @@ function updateEnemies(delta) {
     }
 }
 
-// Spawns a new enemy every 200ms
-function startEnemySpawner() {
-    setInterval(spawnEnemy, 100);
+// Spawns an enemy every currentInterval milliseconds
+function enemySpawnerLoop() {
+    spawnEnemy();
+
+    // Call the function again after the current interval
+    spawner = setTimeout(enemySpawnerLoop, currentInterval);
 }
 
 function updatesperm() {
@@ -297,6 +319,9 @@ function updatesperm() {
 function endGame(win) {
     // Stop the timer
     clearInterval(timerInterval);
+
+    // Stop the enemy spawner
+    clearInterval(spawner);
 
     if (win) {
         // Show win message
