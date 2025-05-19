@@ -108,8 +108,33 @@ canvas {
 
 #gameover {
   position: fixed;
-  top: 40%;
-  left: 35%;
-  font-size: 100px;
+  top: 50%; /* Center the box vertically */
+  left: 50%;  /* Center the box horizontally */
+  transform: translate(-50%, -50%); /* Center the content of the box in the middle of the screen */
+  font-size: 48px;
+  color: black;
+  background-color: rgba(255, 255, 255, 0.8); /* BG for readability */
+  padding: 30px 50px;
+  border-radius: 20px;  /* Rounded corners */
+  border: 2px solid #000; /* border */
+  text-align: center;
+  display: none; /* Start hidden */
+  z-index: 9999; /* To make sure the alert is above everything else */
+}
+
+#win {
+  position: fixed;
+  top: 50%; /* Center the box vertically */
+  left: 50%;  /* Center the box horizontally */
+  transform: translate(-50%, -50%); /* Center the content of the box in the middle of the screen */
+  font-size: 48px;
+  color: black;
+  background-color: rgba(255, 255, 255, 0.8); /* BG for readability */
+  padding: 30px 50px;
+  border-radius: 20px;  /* Rounded corners */
+  border: 2px solid #000; /* Border */
+  text-align: center;
+  display: none; /* Start hidden */
+  z-index: 9999; /* To make sure the alert is above everything else */
 }
 
