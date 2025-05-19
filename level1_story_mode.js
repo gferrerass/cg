@@ -21,7 +21,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // For orbit controls, to move around the scene
-var controls = new OrbitControls(camera, renderer.domElement);
+// var controls = new OrbitControls(camera, renderer.domElement);
 
 // LIGHTING
 // Add an ambient light to the scene
@@ -43,6 +43,7 @@ let timeLeft = 60;
 let timerInterval;
 let gameFinished = false;
 let meshVaginalCanal; // To store the vaginal canal mesh
+let vaginalTexture;   // To store the vaginal canal texture to make it move
 const loader = new GLTFLoader();
 const clock = new THREE.Clock(); // clock for frame rate independent motion
 
@@ -94,24 +95,27 @@ startGame();
 // ------------------------------- FUNCTIONS -------------------------------
 
 function animate() {
-    //if (gameFinished) return; // Stop the animation loop if the game is finished
-    if (gameFinished) {
-        return; // Stop the animation loop if the game is finished
-        // For orbit controls to work when the game is finished
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-    } else {
-        requestAnimationFrame(animate);
-        const delta = clock.getDelta(); // Get time delta for frame rate independent motion
-        // Update animations
-        mixers.forEach((mixer) => mixer.update(delta * spermAnimationSpeed));
-        controls.update();
-        updatesperm();
-        updateEnemies(delta);
+    if (gameFinished) return; // Stop the animation loop if the game is finished
 
-        renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+    // Get time delta for frame rate independent motion
+    const delta = clock.getDelta();
+    // Update sperm animation
+    mixers.forEach((mixer) => mixer.update(delta * spermAnimationSpeed));
+
+    //controls.update(); // Orbit controls (debug)
+
+    // Update the position of the sperm and enemies
+    updatesperm();
+    updateEnemies(delta);
+
+    // Move the vaginal canal texture to simulate forward movement
+    if (vaginalTexture) {
+        vaginalTexture.offset.y -= 0.019 * delta * enemySpeed; // The speed depends on the enemy speed
     }
+
+    // Render the scene
+    renderer.render(scene, camera);
 }
 
 function addVaginalCanal() {
@@ -122,10 +126,10 @@ function addVaginalCanal() {
     });
 
     // Texture mapping
-    const texture = new THREE.TextureLoader().load('textures/liquid_pink.png'); // Wet skin texture
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(10, 20); // Tiling repeat 10 times around the cilinder and 20 times along its length
-    canalMaterial.map = texture;
+    vaginalTexture = new THREE.TextureLoader().load('textures/liquid_pink.png'); // Wet skin texture
+    vaginalTexture.wrapS = vaginalTexture.wrapT = THREE.RepeatWrapping;
+    vaginalTexture.repeat.set(10, 20); // Tiling repeat 10 times around the cilinder and 20 times along its length
+    canalMaterial.map = vaginalTexture;
 
     // Normal map for bumpiness
     const normalMap = new THREE.TextureLoader().load('textures/tileable.jpg'); // Bump normal map
