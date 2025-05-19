@@ -29,7 +29,7 @@ const raycaster = new THREE.Raycaster();
 let pointerLockEnabled = false;
 var score = 0;
 var health = 3;
-var timeLeft = 10;
+var timeLeft = 60;
 var timerInterval;
 var lastDamageTime = 0;
 
@@ -54,6 +54,7 @@ document.getElementById('crosshair').style.display = 'block';
 document.getElementById('score').style.display = 'block';
 document.getElementById('health').style.display = 'block';
 document.getElementById('timer').style.display = 'block';
+document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
 
 // Creating uterus
 var meshUterus, meshTubes;

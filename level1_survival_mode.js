@@ -1,290 +1,429 @@
+// ------------------------------- IMPORTS -------------------------------
 import * as THREE from "three";
 import { OrbitControls } from "./build/controls/OrbitControls.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
 
-// Creating the scene
-var scene = new THREE.Scene( );
+// ------------------------------- SETUP -------------------------------
+const scene = new THREE.Scene();
 
-// Creating the webgl renderer
-var renderer = new THREE.WebGLRenderer( );
-renderer.setSize(window.innerWidth,window.innerHeight);
-// Enabling shadow map rendering
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-// Adding the renderer to the current document
+const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+camera.position.set(0, 2, 10);
+camera.lookAt(0, 0, -50);
+
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+// Add the renderer to the current document
 document.body.appendChild(renderer.domElement);
 
-// Creating the perspective camera
-var ratio = window.innerWidth/window.innerHeight;
-const camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
-camera.position.set(0, 40, 50);
-camera.lookAt(0, 0, 0);
+// For orbit controls, to move around the scene
+//var controls = new OrbitControls(camera, renderer.domElement);
 
-// Setting up orbit controls
-var controls = new OrbitControls(camera, renderer.domElement);
+// LIGHTING
+// Add an ambient light to the scene
+const light = new THREE.AmbientLight(0xffffff, 0.3);
+scene.add(light);
 
-// Setting up lights
-addLighting();
+// SpotLight pointing inside the vaginal canal
+const canalLight = new THREE.SpotLight(0xffffff, 1, 200, Math.PI / 4, 0.9, 0.3);
+canalLight.position.set(0, 2, 30); // In front of the canal
+canalLight.target.position.set(0, 0, -50); // Aim deep inside the canal
+scene.add(canalLight);
+scene.add(canalLight.target);
 
-// Setting up texture loader
-const textureLoader = new THREE.TextureLoader();
+// ------------------------------- MAIN CODE -------------------------------
 
-// Setting up 3D model loader
+// GUI variables
+let score = 0;
+let timerInterval;
+let gameFinished = false;
+let meshVaginalCanal; // To store the vaginal canal mesh
+let vaginalTexture;   // To store the vaginal canal texture to make it move
 const loader = new GLTFLoader();
+const clock = new THREE.Clock(); // clock for frame rate independent motion
 
-// Global variables for objects
-let chair, desk, sofa;
+// ENEMY VARIABLES
+const enemies = [];
+// Array of tuples with path to the model and scale of the model (only one model for now)
+const enemyModels = [
+    { path: "3DModels/leukocyte.glb", scale: 90 }
+];
+let difficulty = 0.6; // Increases over time
+let enemySpeed = 50 * difficulty; // Speed of the enemies
+const maxDifficulty = 1.35; // Maximum difficulty (increasing may cause performance issues)
+let spawnInterval = 100;    // Initial enemy spawn interval in milliseconds
+let currentInterval = spawnInterval / difficulty; // Current enemy spawn interval based on difficulty
+let spawner; // To store the spawn interval id
 
-// Global variables for clicking objects
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let selectedObject = null;
+// SPERM VARIABLES
+let sperm;
+const spermSpeed = 0.5;  // Speed of the sperm movement
+let spermAnimationSpeed = 2.5;  // Speed of the sperm swim animation
+const movementLimits = { left: -12, right: 12, top: 10.5, bottom: -11};
+const keys = {
+    ArrowUp: false,
+    ArrowDown: false,
+    ArrowLeft: false,
+    ArrowRight: false,
+};
+const mixers = []; // Stores animation mixers (for sperm movement)
+let shieldActive = false;   // Stores if the shield is active
+let shieldTimeout = null;   // Timeout for the shield duration
 
-///////////////////////////////////////////////////////////////////////////////////    
+// Display the score
+document.getElementById('score').style.display = 'block';
 
-// Loading chair
-loadAndAddModel("3DModels/chair.glb", new THREE.Vector3(-10, 0, -15), 10, (model) => {
-    chair = model;
-    chair.rotation.y = Math.PI ;
-});
+// Display the vaginal canal
+addVaginalCanal();
 
-// Loading desk
-loadAndAddModel("3DModels/desk.glb", new THREE.Vector3(-10, 0, -20), 10, (model) => {
-    desk = model;
-});
+// Display the sperm
+spawnSperm();
 
-// Loading sofa
-loadAndAddModel("3DModels/sofa.glb", new THREE.Vector3(15, 0, 0), 0.1, (model) => {
-    sofa = model;
-    sofa.name = "sofa";
-});
+// Start the animation loop
+animate();
 
-// Loading floor
-textureLoader.load('textures/floor.jpg', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 5);
-    const floorMaterial = new THREE.MeshStandardMaterial({ map: texture });
+// Start the game (countdown and spawning of enemies)
+startGame();
 
-    // Creating floor
-    const floorGeometry = new THREE.PlaneGeometry(50, 50);
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.name = "floor";
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    scene.add(floor);
-});
+// ------------------------------- FUNCTIONS -------------------------------
 
-// Loading wall
-textureLoader.load('textures/wall.jfif', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 3);
-    const wallMaterial = new THREE.MeshStandardMaterial({ map: texture });
+function animate() {
+    if (gameFinished) return; // Stop the animation loop if the game is finished
 
-    // Creating wall
-    const wallGeometry = new THREE.PlaneGeometry(50, 30);
-    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-    wall.name = "wall";
-    wall.position.y = 15;
-    wall.position.z = -25;
-    wall.receiveShadow = true;
-    scene.add(wall);
-});
+    requestAnimationFrame(animate);
+    // Get time delta for frame rate independent motion
+    const delta = clock.getDelta();
+    // Update sperm animation
+    mixers.forEach((mixer) => mixer.update(delta * spermAnimationSpeed));
 
-// Loading brick wall
-textureLoader.load('textures/brick.jfif', function (texture) {
-    // Loading texture
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(5, 3);
-    const wallMaterial = new THREE.MeshStandardMaterial({ map: texture });
+    //controls.update(); // Orbit controls (debug)
 
-    // Creating wall
-    const wallGeometry = new THREE.PlaneGeometry(50, 30);
-    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-    wall.name = "wall";
-    wall.position.y = 15;
-    wall.position.x = 25;
-    wall.rotation.y = -Math.PI / 2;
-    wall.receiveShadow = true;
-    scene.add(wall);
-});
-/////////////////////////////////////////////////////////////////////////////////// 
+    // Update the position of the sperm and enemies
+    updatesperm();
+    updateEnemies(delta);
 
+    // Update the camera
+    updateCamera();
 
-function loadAndAddModel(path, position, scale, callback) {
-    loader.load(path, (gltf) => {
-        const model = gltf.scene;
-        model.position.copy(position);
-        model.scale.setScalar(scale);
+    // Move the vaginal canal texture to simulate forward movement
+    if (vaginalTexture) {
+        vaginalTexture.offset.y -= 0.019 * delta * enemySpeed; // The speed depends on the enemy speed
+    }
 
-        // Enabling shadows on all mesh children
-        model.traverse((child) => {
+    // Render the scene
+    renderer.render(scene, camera);
+}
+
+function updateCamera() {
+    // Camera follows the sperm smoothly
+    if (sperm) {
+        // Define the target position to interpolate towards
+        const targetPosition = new THREE.Vector3(
+            sperm.position.x,
+            sperm.position.y + 3,  // A little above the sperm for a better view
+            sperm.position.z + 14  // Behind the sperm
+        );
+        // Interpolate the camera position smoothly towards the target
+        camera.position.lerp(targetPosition, 0.2);
+        // Make the camera look ahead from the sperm
+        camera.lookAt(sperm.position.x, sperm.position.y, -50);
+    }
+}
+
+function addVaginalCanal() {
+    const canalMaterial = new THREE.MeshPhongMaterial({
+        shininess: 200,
+        color: 0xffc0cb, // Pink base color
+        side: THREE.BackSide // Render the inside of the canal
+    });
+
+    // Texture mapping
+    vaginalTexture = new THREE.TextureLoader().load('textures/liquid_pink.png'); // Wet skin texture
+    vaginalTexture.wrapS = vaginalTexture.wrapT = THREE.RepeatWrapping;
+    vaginalTexture.repeat.set(10, 20); // Tiling repeat 10 times around the cilinder and 20 times along its length
+    canalMaterial.map = vaginalTexture;
+
+    // Normal map for bumpiness
+    const normalMap = new THREE.TextureLoader().load('textures/tileable.jpg'); // Bump normal map
+    normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
+    normalMap.repeat.set(10, 20);
+    canalMaterial.normalMap = normalMap;
+
+    // The geometry is a long cylinder with a big opening and a small end
+    const radiusTop = 25;   // opening
+    const radiusBottom = 0; // end
+    const height = 300; // length of the canal
+    const radialSegments = 32;  // how many slices around the cilinder
+    const heightSegments = 32;  // how many slices along the cilinder
+
+    const geometry = new THREE.CylinderGeometry(
+        radiusTop,
+        radiusBottom,
+        height,
+        radialSegments,
+        heightSegments,
+        true // open-ended
+    );
+
+    meshVaginalCanal = new THREE.Mesh(geometry, canalMaterial);
+    meshVaginalCanal.rotation.x = Math.PI / 2; // Align along the z-axis
+    meshVaginalCanal.position.z = -80; // Position it in front of the camera
+    meshVaginalCanal.position.y = -2; // Adjust height
+
+    scene.add(meshVaginalCanal);
+}
+
+// Starts the game, starting the countdown and the spawning of enemies, and updating the score.
+// If the countdown reaches 0, it ends the game as a win
+function startGame() {
+    timerInterval = setInterval(() => {
+        if (score == 0) {
+            // Start enemy spawner loop after 1 second
+            enemySpawnerLoop();
+        }
+        // Update score
+        score++;
+
+        // Increase the difficulty every 5 seconds
+        if (score % 5 == 0 && difficulty < maxDifficulty) {
+            difficulty += 0.05;
+            spermAnimationSpeed += 0.2; // Increase the sperm swim animation speed
+            currentInterval = spawnInterval / difficulty; // Update the enemy spawn interval
+            enemySpeed = 50 * difficulty;   // Update the enemy speed
+        }
+
+        // Display updated score
+        document.getElementById('score').innerText = `Score: ${score}`;
+    }, 1000);   // 1 second interval
+}
+
+function spawnSperm() {
+    loader.load("3DModels/sperm.glb", (gltf) => {
+        sperm = gltf.scene;
+        sperm.position.set(0, -2, -6);
+        sperm.scale.setScalar(0.8);
+        // Rotate the sperm so it faces away from the camera
+        sperm.rotation.y = Math.PI;
+        // Change the sperm color to a less bright white
+        sperm.traverse((child) => {
             if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
+                child.material.emissive = new THREE.Color(0xffffff);
+                child.material.emissiveIntensity = 0.6;
             }
         });
+        scene.add(sperm);
 
-        scene.add(model);
-        callback(model);
+        // Set up animation mixer
+        const mixer = new THREE.AnimationMixer(sperm);
+        gltf.animations.forEach((clip) => {
+            console.log(clip);
+            const action = mixer.clipAction(clip);
+            action.play(); // Play the animation
+        });
+        mixers.push(mixer);
     });
 }
 
-function addLighting() {
-    // Adding a soft ambient light inside a room
-    const ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 0.5);
-    scene.add(ambientLight);
-
-    // Adding a point light from the ceiling
-    const pointLight = new THREE.PointLight(new THREE.Color(1, 1, 1), 0.8, 100);
-    pointLight.position.set(0, 30, 0);
-    // Enabling shadow casting for point light
-    pointLight.castShadow = true;
-    // Setting up shadow quality
-    pointLight.shadow.mapSize.width = 1024;
-    pointLight.shadow.mapSize.height = 1024;
-    // Correcting shadow acne
-    pointLight.shadow.bias = -0.005;
-    scene.add(pointLight);
-
-    // Adding a small light that follows the camera
-    const cameraLight = new THREE.PointLight(new THREE.Color(1, 1, 1), 0.2);
-    camera.add(cameraLight);
-    scene.add(camera);
-}
-
-// Function that detects when an object is clicked on
-function onMouseClick(event) {
-    // Normalising mouse coordinates (-1 to +1)
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-
-    // Getting all intersected objects
-    const intersects = raycaster.intersectObjects(scene.children, true);
-
-    if (intersects.length > 0) {
-        // Highlighting clicked object 
-        const clickedMesh = intersects[0].object;
-        highlightObject(clickedMesh);
-    }
-}
-
-// Function that highlights an object
-function highlightObject(object) {
-    // Unhighlighting the previously clicked object
-    if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
-        selectedObject.material.emissive.setHex(0x000000);
+function spawnEnemy() {
+    let isShield = false;   // Current enemy will be replaced by a shield
+    if (!shieldActive && Math.random() < 0.01) { // 1/100 chance to spawn a shield
+        isShield = true; 
     }
 
-    if (object.name != "floor" && object.name != "wall") {
-        selectedObject = object;
+    let model;
+    if (isShield) {
+        model = { path: "3DModels/shield.glb", scale: 1.0 }; // Shield model
+    } else {
+        // Randomly select an enemy model by generating a random index between 0 and enemyModels.length-1
+        model = enemyModels[Math.floor(Math.random() * enemyModels.length)];
+    }
 
-        if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
-            selectedObject.material.emissive.setHex(0x777777);
+    // Load the selected model
+    loader.load(model.path, (gltf) => {
+        const enemy = gltf.scene;
+        if (!isShield) {    // If the enemy is not a shield, set a random scale
+            const randomScale = (Math.random() + 0.5) * model.scale;
+            enemy.scale.setScalar(randomScale);
+        } else {
+            // If it's a shield, change the color to blue
+            enemy.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.emissive = new THREE.Color(0x00ffff);
+                    child.material.emissiveIntensity = 0.8;
+                }
+            });
+        }
+
+        // Randomize position at the horizon
+        enemy.position.set(
+            Math.random() * 30 - 15, // Random x position between -15 and 15
+            Math.random() * 25 - 14, // Random y position between -14 and 11
+            -100
+        );
+
+        // Random rotation
+        enemy.rotation.set(
+            Math.random() * 2 * Math.PI,
+            Math.random() * 2 * Math.PI,
+            Math.random() * 2 * Math.PI
+        );
+
+        enemy.userData.isShield = isShield; // Store if the enemy is a shield
+
+        scene.add(enemy);
+        enemies.push(enemy);
+    });
+}
+
+// Update the position of all enemies every frame and remove them when they reach behind the camera
+function updateEnemies(delta) {
+    // If the sperm model hasn't loaded yet, return
+    if (!sperm) return;
+
+    // Wrap the sperm in a hit box to check for collisions
+    const spermCenter = sperm.localToWorld(new THREE.Vector3(0, 0.3, 0.5)); // Get sperm coordinates
+    const spermSize = new THREE.Vector3(1.5, 1, 5.5); // Make custom hit box
+    const spermBox = new THREE.Box3().setFromCenterAndSize(spermCenter, spermSize);
+
+    // Iterate backwards to safely remove enemies while iterating
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+
+        // Move the enemy towards the screen (positive z-axis)
+        enemy.position.z += delta * enemySpeed;
+
+        // Rotate the enemy
+        enemy.rotation.x += delta * 0.5;
+        enemy.rotation.y += delta * 0.5;
+        
+        // Create a bounding sphere for the enemy
+        const boundingBox = new THREE.Box3().setFromObject(enemy);
+        // Shrink the sphere to better fit the model
+        const center = boundingBox.getCenter(new THREE.Vector3());
+        const radius = boundingBox.getSize(new THREE.Vector3()).length() * 0.18;
+        const enemySphere = new THREE.Sphere(center, radius);
+
+        // Check for collision between the sperm and the enemy
+        if (spermBox.intersectsSphere(enemySphere)) {
+            // Collision with shield
+            if (enemy.userData.isShield) {
+                // Activate the shield
+                activateShield();
+                scene.remove(enemy);    // Remove the shield from the scene
+                enemies.splice(i, 1);   // Remove the shield from the array
+                continue;
+            }
+
+            // Collision with enemy
+            if (!shieldActive) {
+                clearInterval(timerInterval);   // Stop the timer
+                gameFinished = true;    // Set game finished to true
+                endGame(false);   // Player loses
+                return;
+            } else {    // Shield is active, remove the enemy
+                scene.remove(enemy);    // Remove the enemy from the scene
+                enemies.splice(i, 1);   // Remove the enemy from the array
+                score += 1;    // Increase score by 1
+                document.getElementById('score').innerText = `Score: ${score}`; // Update score display
+            }
+        }
+        
+        // Remove the enemy when it reaches behind the camera
+        if (enemy.position.z > camera.position.z + 5) {
+            scene.remove(enemy); // Remove the enemy from the scene
+            enemies.splice(i, 1); // Remove the enemy from the array
         }
     }
-    else {
-        selectedObject = null;
-    }
 }
 
-// Function that moves an object based on the pressed key
-function handleKeyDown(event) {
-    // Only moving if something is selected
-    if (!selectedObject) return;
+function activateShield() {
+    shieldActive = true;
 
-    const speed = 2;
-    const rotationSpeed = 0.1;
-    if (!isPartOfSofa(selectedObject)) {
-        switch (event.key.toLowerCase()) {
-            case "w":
-                selectedObject.position.z -= speed;
-                break;
-            case "s":
-                selectedObject.position.z += speed;
-                break;
-            case "a":
-                selectedObject.position.x -= speed;
-                break;
-            case "d":
-                selectedObject.position.x += speed;
-                break;
-            case "r":
-                selectedObject.rotation.y += rotationSpeed;
-                break;
+    // Change the sperm color to blue-ish to indicate the shield is active
+    sperm.traverse((child) => {
+        if (child.isMesh) {
+            child.material.emissive = new THREE.Color(0x00ffff);
+            child.material.emissiveIntensity = 0.8;
         }
+    });
+
+    if (shieldTimeout) clearTimeout(shieldTimeout);
+
+    shieldTimeout = setTimeout(() => {
+        shieldActive = false;
+        // Change the sperm color back to white
+        sperm.traverse((child) => {
+            if (child.isMesh) {
+                child.material.emissive = new THREE.Color(0xffffff);
+                child.material.emissiveIntensity = 0.6;
+            }
+        });
+    }, 5000); // Shield lasts 5 seconds
+}
+
+// Spawns an enemy every currentInterval milliseconds
+function enemySpawnerLoop() {
+    spawnEnemy();
+
+    // Call the function again after the current interval
+    spawner = setTimeout(enemySpawnerLoop, currentInterval);
+}
+
+// Updates the sperm position based on the keys pressed
+function updatesperm() {
+    if (!sperm) return;
+
+    if (keys.ArrowUp && sperm.position.y < movementLimits.top) {
+        sperm.position.y += spermSpeed;
     }
-    else {
-        switch (event.key.toLowerCase()) {
-            case "w":
-                selectedObject.position.y += speed;
-                break;
-            case "s":
-                selectedObject.position.y -= speed;
-                break;
-            case "a":
-                selectedObject.position.x -= speed;
-                break;
-            case "d":
-                selectedObject.position.x += speed;
-                break;
-            case "r":
-                selectedObject.rotation.z += rotationSpeed;
-                break;
-        }
+    if (keys.ArrowDown && sperm.position.y > movementLimits.bottom) {
+        sperm.position.y -= spermSpeed;
+    }
+    if (keys.ArrowLeft && sperm.position.x > movementLimits.left) {
+        sperm.position.x -= spermSpeed;
+    }
+    if (keys.ArrowRight && sperm.position.x < movementLimits.right) {
+        sperm.position.x += spermSpeed;
     }
 }
 
-function isPartOfSofa(object) {
-    while (object) {
-        if (object.name === "sofa") return true;
-        object = object.parent;
+function endGame(win) {
+    // Stop the timer
+    clearInterval(timerInterval);
+
+    // Stop the enemy spawner
+    clearInterval(spawner);
+
+    if (win) {
+        // Show win message
+        document.getElementById('win').style.display = 'block';
+    } else {
+        // Show game over message
+        document.getElementById('gameover').style.display = 'block';
     }
-    return false;
 }
 
-// Final update loop
-const clock = new THREE.Clock();
-var MyUpdateLoop = function ( )
-{
-    var delta = clock.getDelta();
-    controls.update();
-    // Call the render with the scene and the camera
-    renderer.render(scene,camera);
-    requestAnimationFrame(MyUpdateLoop);
-
-};
-requestAnimationFrame(MyUpdateLoop);
-
-
-// This function is called when the window is resized
-var MyResize = function ( )
-{
-    // get the new sizes
-    var width = window.innerWidth;
-    var height = window.innerHeight;
-    // then update the renderer
-    renderer.setSize(width,height);
-    // and update the aspect ratio of the camera
-    camera.aspect = width/height;
-
-    // update the projection matrix given the new values
+// (From class) This function is called when the window is resized
+function MyResize() {
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
+}
 
-    // and finally render the scene again
-    renderer.render(scene,camera);
-};
+// ------------------------------- EVENT LISTENERS -------------------------------
 
 // Link the resize of the window to the update of the camera
 window.addEventListener("resize", MyResize);
-// Linking the mouse click to the defined function
-window.addEventListener('click', onMouseClick, false);
-// Linking pressing a key to the defined function
-window.addEventListener("keydown", handleKeyDown);
+window.addEventListener("keydown", (event) => {
+    if (event.key in keys) keys[event.key] = true;
+});
+window.addEventListener("keyup", (event) => {
+    if (event.key in keys) keys[event.key] = false;
+});
