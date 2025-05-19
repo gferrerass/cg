@@ -70,6 +70,8 @@ const keys = {
     ArrowRight: false,
 };
 const mixers = []; // Stores animation mixers (for sperm movement)
+let shieldActive = false;   // Stores if the shield is active
+let shieldTimeout = null;   // Timeout for the shield duration
 
 // Display the score
 document.getElementById('score').style.display = 'block';
@@ -183,6 +185,13 @@ function spawnSperm() {
         sperm.scale.setScalar(0.8);
         // Rotate the sperm so it faces away from the camera
         sperm.rotation.y = Math.PI;
+        // Change the sperm color to a less bright white
+        sperm.traverse((child) => {
+            if (child.isMesh) {
+                child.material.emissive = new THREE.Color(0xffffff);
+                child.material.emissiveIntensity = 0.6;
+            }
+        });
         scene.add(sperm);
 
         // Set up animation mixer
@@ -197,14 +206,34 @@ function spawnSperm() {
 }
 
 function spawnEnemy() {
-    // Randomly select an enemy model by generating a random index between 0 and enemyModels.length-1
-    const model = enemyModels[Math.floor(Math.random() * enemyModels.length)];
+    let isShield = false;   // Current enemy will be replaced by a shield
+    if (!shieldActive && Math.random() < 0.01) { // 1/100 chance to spawn a shield
+        isShield = true; 
+    }
+
+    let model;
+    if (isShield) {
+        model = { path: "3DModels/shield.glb", scale: 1.0 }; // Shield model
+    } else {
+        // Randomly select an enemy model by generating a random index between 0 and enemyModels.length-1
+        model = enemyModels[Math.floor(Math.random() * enemyModels.length)];
+    }
 
     // Load the selected model
     loader.load(model.path, (gltf) => {
         const enemy = gltf.scene;
-        const randomScale = (Math.random() + 0.5) * model.scale;
-        enemy.scale.setScalar(randomScale);
+        if (!isShield) {    // If the enemy is not a shield, set a random scale
+            const randomScale = (Math.random() + 0.5) * model.scale;
+            enemy.scale.setScalar(randomScale);
+        } else {
+            // If it's a shield, change the color to blue
+            enemy.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.emissive = new THREE.Color(0x00ffff);
+                    child.material.emissiveIntensity = 0.8;
+                }
+            });
+        }
 
         // Randomize position at the horizon
         enemy.position.set(
@@ -219,6 +248,8 @@ function spawnEnemy() {
             Math.random() * 2 * Math.PI,
             Math.random() * 2 * Math.PI
         );
+
+        enemy.userData.isShield = isShield; // Store if the enemy is a shield
 
         scene.add(enemy);
         enemies.push(enemy);
@@ -255,11 +286,27 @@ function updateEnemies(delta) {
 
         // Check for collision between the sperm and the enemy
         if (spermBox.intersectsSphere(enemySphere)) {
-            // Collision detected
-            clearInterval(timerInterval);   // Stop the timer
-            gameFinished = true;    // Set game finished to true
-            endGame(false);   // Player loses
-            return;
+            // Collision with shield
+            if (enemy.userData.isShield) {
+                // Activate the shield
+                activateShield();
+                scene.remove(enemy);    // Remove the shield from the scene
+                enemies.splice(i, 1);   // Remove the shield from the array
+                continue;
+            }
+
+            // Collision with enemy
+            if (!shieldActive) {
+                clearInterval(timerInterval);   // Stop the timer
+                gameFinished = true;    // Set game finished to true
+                endGame(false);   // Player loses
+                return;
+            } else {    // Shield is active, remove the enemy
+                scene.remove(enemy);    // Remove the enemy from the scene
+                enemies.splice(i, 1);   // Remove the enemy from the array
+                score += 1;    // Increase score by 1
+                document.getElementById('score').innerText = `Score: ${score}`; // Update score display
+            }
         }
         
         // Remove the enemy when it reaches behind the camera
@@ -268,6 +315,31 @@ function updateEnemies(delta) {
             enemies.splice(i, 1); // Remove the enemy from the array
         }
     }
+}
+
+function activateShield() {
+    shieldActive = true;
+
+    // Change the sperm color to blue-ish to indicate the shield is active
+    sperm.traverse((child) => {
+        if (child.isMesh) {
+            child.material.emissive = new THREE.Color(0x00ffff);
+            child.material.emissiveIntensity = 0.8;
+        }
+    });
+
+    if (shieldTimeout) clearTimeout(shieldTimeout);
+
+    shieldTimeout = setTimeout(() => {
+        shieldActive = false;
+        // Change the sperm color back to white
+        sperm.traverse((child) => {
+            if (child.isMesh) {
+                child.material.emissive = new THREE.Color(0xffffff);
+                child.material.emissiveIntensity = 0.6;
+            }
+        });
+    }, 5000); // Shield lasts 5 seconds
 }
 
 // Spawns an enemy every currentInterval milliseconds
