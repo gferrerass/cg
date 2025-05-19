@@ -38,27 +38,26 @@ scene.add(canalLight.target);
 // ------------------------------- MAIN CODE -------------------------------
 
 // GUI variables
-var score = 0;
-var timeLeft = 60;
-var timerInterval;
-var gameFinished = false;
-
+let score = 0;
+let timeLeft = 60;
+let timerInterval;
+let gameFinished = false;
+let meshVaginalCanal; // To store the vaginal canal mesh
 const loader = new GLTFLoader();
+const clock = new THREE.Clock(); // clock for frame rate independent motion
 
 // ENEMY VARIABLES
 const enemies = [];
-var enemySpeed = 50; // Speed of the enemies
-// Array of tuples with path to the model and scale of the model
+let enemySpeed = 50; // Speed of the enemies
+// Array of tuples with path to the model and scale of the model (only one model for now)
 const enemyModels = [
-    { path: "3DModels/leukocyte.glb", scale: 90 },
-    // { path: "3DModels/leukocyte_simple.glb", scale: 0.25 },
-    // { path: "3DModels/leukocyte_angry.glb", scale: 2 },
+    { path: "3DModels/leukocyte.glb", scale: 90 }
 ];
 
 // SPERM VARIABLES
 let sperm;
 const spermSpeed = 0.5;  // Speed of the sperm movement
-var spermAnimationSpeed = 2.5;  // Speed of the sperm swim animation
+let spermAnimationSpeed = 2.5;  // Speed of the sperm swim animation
 const movementLimits = { left: -12, right: 12, top: 10.5, bottom: -11};
 const keys = {
     ArrowUp: false,
@@ -68,19 +67,22 @@ const keys = {
 };
 const mixers = []; // Stores animation mixers (for sperm movement)
 
-let meshVaginalCanal;
-addVaginalCanal();
-
 // Display the score and timer
 document.getElementById('score').style.display = 'block';
 document.getElementById('timer').style.display = 'block';
 document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
 
+// Display the vaginal canal
+addVaginalCanal();
+
+// Display the sperm
 spawnSperm();
 
-const clock = new THREE.Clock(); // clock for frame rate independent motion
-animate(); // Start the animation loop
-startTimer(); // Start the timer countdown
+// Start the animation loop
+animate();
+
+// Start the game (countdown and spawning of enemies)
+startGame();
 
 // ------------------------------- FUNCTIONS -------------------------------
 
@@ -148,14 +150,16 @@ function addVaginalCanal() {
     scene.add(meshVaginalCanal);
 }
 
-// Starts timer countdown and when it reaches 0, ends the game
-function startTimer() {
+// Starts the game, starting the countdown and the spawning of enemies, and updating the score.
+// If the countdown reaches 0, it ends the game as a win
+function startGame() {
     timerInterval = setInterval(() => {
         if (timeLeft == 60) {   // Wait 1 second before spawning enemies
             startEnemySpawner();
         }
         timeLeft--;
         score++;
+        spermAnimationSpeed += 0.04; // Increase the speed of the sperm swim animation
         document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
         document.getElementById('score').innerText = `Score: ${score}`;
 
@@ -305,8 +309,8 @@ function endGame(win) {
 
 // (From class) This function is called when the window is resized
 function MyResize() {
-    var width = window.innerWidth;
-    var height = window.innerHeight;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
     renderer.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
