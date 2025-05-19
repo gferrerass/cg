@@ -44,8 +44,10 @@ var timerInterval;
 var gameFinished = false;
 
 const loader = new GLTFLoader();
-const enemies = [];
 
+// ENEMY VARIABLES
+const enemies = [];
+var enemySpeed = 50; // Speed of the enemies
 // Array of tuples with path to the model and scale of the model
 const enemyModels = [
     { path: "3DModels/leukocyte.glb", scale: 90 },
@@ -53,8 +55,10 @@ const enemyModels = [
     // { path: "3DModels/leukocyte_angry.glb", scale: 2 },
 ];
 
+// SPERM VARIABLES
 let sperm;
-const spermSpeed = 0.5;
+const spermSpeed = 0.5;  // Speed of the sperm movement
+var spermAnimationSpeed = 2.5;  // Speed of the sperm swim animation
 const movementLimits = { left: -12, right: 12, top: 10.5, bottom: -11};
 const keys = {
     ArrowUp: false,
@@ -62,7 +66,6 @@ const keys = {
     ArrowLeft: false,
     ArrowRight: false,
 };
-
 const mixers = []; // Stores animation mixers (for sperm movement)
 
 let meshVaginalCanal;
@@ -71,11 +74,11 @@ addVaginalCanal();
 // Display the score and timer
 document.getElementById('score').style.display = 'block';
 document.getElementById('timer').style.display = 'block';
+document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
 
 spawnSperm();
 
 const clock = new THREE.Clock(); // clock for frame rate independent motion
-startEnemySpawner();
 animate(); // Start the animation loop
 startTimer(); // Start the timer countdown
 
@@ -91,10 +94,9 @@ function animate() {
         renderer.render(scene, camera);
     } else {
         requestAnimationFrame(animate);
-        const delta = clock.getDelta(); // Get time delta for smooth animation
+        const delta = clock.getDelta(); // Get time delta for frame rate independent motion
         // Update animations
-        const speedFactor = 2.5; // Speed of the sperm swim animation
-        mixers.forEach((mixer) => mixer.update(delta * speedFactor));
+        mixers.forEach((mixer) => mixer.update(delta * spermAnimationSpeed));
         controls.update();
         updatesperm();
         updateEnemies(delta);
@@ -149,6 +151,9 @@ function addVaginalCanal() {
 // Starts timer countdown and when it reaches 0, ends the game
 function startTimer() {
     timerInterval = setInterval(() => {
+        if (timeLeft == 60) {   // Wait 1 second before spawning enemies
+            startEnemySpawner();
+        }
         timeLeft--;
         score++;
         document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
@@ -224,23 +229,12 @@ function updateEnemies(delta) {
     const spermSize = new THREE.Vector3(1.5, 1, 5.5); // Make custom hit box
     const spermBox = new THREE.Box3().setFromCenterAndSize(spermCenter, spermSize);
 
-    // Visualize the hit box (debug) 
-    // if (!sperm.customHelper) {
-    //     const helper = new THREE.Box3Helper(spermBox, 0x00ff00);
-    //     scene.add(helper);
-    //     sperm.customHelper = helper;
-    // } else {
-    //     // Update the helper's box
-    //     sperm.customHelper.box.copy(spermBox);
-    //     sperm.customHelper.updateMatrixWorld(true);
-    // }
-
     // Iterate backwards to safely remove enemies while iterating
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
 
         // Move the enemy towards the screen (positive z-axis)
-        enemy.position.z += delta * 50;
+        enemy.position.z += delta * enemySpeed;
 
         // Rotate the enemy
         enemy.rotation.x += delta * 0.5;
@@ -252,19 +246,6 @@ function updateEnemies(delta) {
         const center = boundingBox.getCenter(new THREE.Vector3());
         const radius = boundingBox.getSize(new THREE.Vector3()).length() * 0.18;
         const enemySphere = new THREE.Sphere(center, radius);
-
-        // Draw sphere helper (debug)
-        // if (!enemy.sphereHelper) {
-        //     const sphereGeo = new THREE.SphereGeometry(radius, 12, 12);
-        //     const wireMat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-        //     const helperMesh = new THREE.Mesh(sphereGeo, wireMat);
-        //     helperMesh.position.copy(center);
-        //     scene.add(helperMesh);
-        //     enemy.sphereHelper = helperMesh;
-        // } else {
-        //     enemy.sphereHelper.position.copy(center);
-        //     enemy.sphereHelper.scale.setScalar(radius / enemy.sphereHelper.geometry.parameters.radius);
-        // }
 
         // Check for collision between the sperm and the enemy
         if (spermBox.intersectsSphere(enemySphere)) {
@@ -278,9 +259,6 @@ function updateEnemies(delta) {
         // Remove the enemy when it reaches behind the camera
         if (enemy.position.z > camera.position.z + 5) {
             scene.remove(enemy); // Remove the enemy from the scene
-            // if (enemy.sphereHelper) {   // Remove the sphere helper if it exists
-            //     scene.remove(enemy.sphereHelper);
-            // }
             enemies.splice(i, 1); // Remove the enemy from the array
         }
     }
