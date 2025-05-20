@@ -106,6 +106,14 @@ canvas {
   font-size: 32px;
 }
 
+#finalScore {
+  font-size: 32px;
+}
+
+#highScore {
+  font-size: 32px;
+}
+
 #gameover {
   position: fixed;
   top: 50%; /* Center the box vertically */

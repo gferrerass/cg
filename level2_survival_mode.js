@@ -204,6 +204,21 @@ function startTimer() {
     timerInterval = setInterval(() => {
         if (health == 0) {
             document.getElementById('gameover').style.display = 'block';
+            document.getElementById('finalScore').style.display = 'block';
+            document.getElementById('highScore').style.display = 'block';
+            // Showing final Score
+            document.getElementById('finalScore').innerText = `Final Score: ${score}`;
+
+            // Obtaining locally saved High Score
+            const savedHighScore = localStorage.getItem('highScore') || 0;
+
+            // Saving current High Score
+            if (score > savedHighScore) {
+                localStorage.setItem('highScore', score);
+            }
+
+            // Displaying High Score
+            document.getElementById('highScore').innerText = `High Score: ${Math.max(score, savedHighScore)}`;
             return;
         }
         timeLeft--;

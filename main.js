@@ -8,7 +8,7 @@ placelogo(10,50);
 createMenu();
 
 
-// Create the main menu with buttons for Level 1 and Level 2
+// Create the main menu with buttons for Story Mode and Survival Mode
 function createMenu() {
     const oldMenu = document.getElementById('menu');
     if (oldMenu) oldMenu.remove();
@@ -17,20 +17,20 @@ function createMenu() {
     menu.id = 'menu';
   
     const button1 = document.createElement('button');
-    button1.innerText = 'L1 - Vag Crash';
-    button1.onclick = () => createModeMenu('level1');
+    button1.innerText = 'Story Mode';
+    button1.onclick = () => createModeMenu('_story_mode');
   
     const button2 = document.createElement('button');
-    button2.innerText = 'L2 - Uterus Splash';
-    button2.onclick = () => createModeMenu('level2');
+    button2.innerText = 'Survival Mode';
+    button2.onclick = () => createModeMenu('_survival_mode');
   
     menu.appendChild(button1);
     menu.appendChild(button2);
     document.body.appendChild(menu);
 }
   
-// Create the mode menu with buttons for Story Mode and Survival Mode
-function createModeMenu(levelName) {
+// Create the mode menu with buttons for level 1 and level 2
+function createModeMenu(levelMode) {
   const oldMenu = document.getElementById('menu');
   if (oldMenu) oldMenu.remove();
 
@@ -38,14 +38,14 @@ function createModeMenu(levelName) {
   modeMenu.id = 'menu';
 
   const mode1 = document.createElement('button');
-  mode1.innerText = 'Story Mode';
-  // On click, load the selected level on story mode
-  mode1.onclick = () => startLevel(`${levelName}_story_mode`);
+  mode1.innerText = 'L1 - Vag Crash';
+  // On click, load the selected level
+  mode1.onclick = () => startLevel(`level1${levelMode}`);
 
   const mode2 = document.createElement('button');
-  mode2.innerText = 'Survival Mode';
-  // On click, load the selected level on survival mode
-  mode2.onclick = () => startLevel(`${levelName}_survival_mode`);
+  mode2.innerText = 'L2 - Uterus Splash';
+  // On click, load the selected level
+  mode2.onclick = () => startLevel(`level2${levelMode}`);
 
   const goBack = document.createElement('button');
   goBack.innerText = 'Go Back';

@@ -404,6 +404,22 @@ function endGame(win) {
     } else {
         // Show game over message
         document.getElementById('gameover').style.display = 'block';
+        document.getElementById('finalScore').style.display = 'block';
+        document.getElementById('highScore').style.display = 'block';
+        
+        // Showing final Score
+        document.getElementById('finalScore').innerText = `Final Score: ${score}`;
+
+        // Obtaining locally saved High Score
+        const savedHighScore = localStorage.getItem('highScore1') || 0;
+
+        // Saving current High Score
+        if (score > savedHighScore) {
+            localStorage.setItem('highScore1', score);
+        }
+        // Displaying High Score
+        document.getElementById('highScore').innerText = `High Score: ${Math.max(score, savedHighScore)}`;
+        return;
     }
 }
 
