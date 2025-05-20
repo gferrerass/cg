@@ -31,7 +31,7 @@ let score = 0;
 var health = 3;
 var timeLeft = 1;
 var timerInterval;
-var lastDamageTime = 1000;
+var lastDamageTime = 0;
 
 // Rotation around the Y-Axis (horizontally)
 var yaw = 0;
@@ -234,9 +234,11 @@ function startTimer() {
 }
 
 export function decreaseHealth() {
-    if (lastDamageTime - timeLeft >= 3) { 
+    const currentTime = performance.now();
+
+    if (currentTime - lastDamageTime >= 1000) { // 1 second cooldown
         if (health > 0) health--;
-        lastDamageTime = timeLeft;
+        lastDamageTime = currentTime;
 
         const healthElement = document.getElementById('health');
         if (healthElement) {

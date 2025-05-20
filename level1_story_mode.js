@@ -212,7 +212,7 @@ function startGame() {
             gameFinished = true;
             const timerElement = document.getElementById('timer');
             timerElement.style.left = '23%';
-            timerElement.textContent = `Victory!`;
+            timerElement.textContent = `Time's out! You made it through the Vag-Crash!`;
             endGame(true); // Level passed, player wins
         }
     }, 1000);   // 1 second interval
