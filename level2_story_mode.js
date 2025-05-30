@@ -29,7 +29,7 @@ const raycaster = new THREE.Raycaster();
 let pointerLockEnabled = false;
 var score = 0;
 var health = 3;
-var timeLeft = 1;
+var timeLeft = 120;
 var timerInterval;
 var lastDamageTime = 0;
 
