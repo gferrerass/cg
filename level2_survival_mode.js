@@ -30,7 +30,6 @@ let pointerLockEnabled = false;
 let score = 0;
 var health = 3;
 var timeLeft = 1;
-var timerInterval;
 var lastDamageTime = 0;
 
 // Rotation around the Y-Axis (horizontally)
@@ -62,13 +61,17 @@ let sperms = [];
 var spermsRotationSpeed = 5;
 var material_uterus, geometry_uterus;
 var finished = false;
-
+var basePositionsUterus;
 
 // ------------------------------- MAIN CODE -------------------------------
 
 startTimer();
 
 // ------------------------------- FUNCTIONS -------------------------------
+
+function fakeNoise(x, y, t) {
+    return Math.sin(x * 0.3 + t) * Math.cos(y * 0.3 + t);
+}
 
 function addUterus() {
     material_uterus = new THREE.MeshPhongMaterial({
@@ -97,6 +100,9 @@ function addUterus() {
     meshUterus.rotation.x = Math.PI / 2;
     meshUterus.receiveShadow = true;
     scene.add(meshUterus);
+
+    basePositionsUterus = geometry_uterus.attributes.position.array.slice();
+
 }
 
 
@@ -272,6 +278,8 @@ function addEnemies() {
 // Final update loop
 var MyUpdateLoop = function () {
     var delta = clock.getDelta();
+    // Get elapsed time for noise generation
+    const elapsedTime = clock.getElapsedTime();
 
     camera.position.set(Pos.x, Pos.y, Pos.z);
     camera.lookAt(Pos.x + Dir.x, Pos.y + Dir.y, Pos.z + Dir.z);
@@ -281,6 +289,27 @@ var MyUpdateLoop = function () {
 
     // Updating player movement
     updateMovement(delta);
+
+    // Deforming uterus
+    if (meshUterus && geometry_uterus && basePositionsUterus) {
+        const pos1 = geometry_uterus.attributes.position;
+        for (let i = 0; i < pos1.count; i++) {
+            // (vertex i * 3 because each vertex has 3 components)
+            const ix = i * 3;
+            const x = basePositionsUterus[ix];
+            const y = basePositionsUterus[ix + 1];
+            const z = basePositionsUterus[ix + 2];
+
+            // Calculate displacement with Noise
+            const displacement = fakeNoise(x, z, elapsedTime) * 0.2;
+            // Apply noise on vertex to deform geometry
+            pos1.setXYZ(i, x, y + displacement, z + displacement * 0.5);
+        }
+
+        pos1.needsUpdate = true;
+        geometry_uterus.computeVertexNormals();
+
+    }
 
     renderer.render(scene, camera);
     requestAnimationFrame(MyUpdateLoop);

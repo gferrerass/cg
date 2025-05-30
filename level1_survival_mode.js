@@ -1,7 +1,7 @@
 // ------------------------------- IMPORTS -------------------------------
 import * as THREE from "three";
-import { OrbitControls } from "./build/controls/OrbitControls.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
+//import { OrbitControls } from "./build/controls/OrbitControls.js"; // Debug
 
 // ------------------------------- SETUP -------------------------------
 const scene = new THREE.Scene();
@@ -43,6 +43,8 @@ let timerInterval;
 let gameFinished = false;
 let meshVaginalCanal; // To store the vaginal canal mesh
 let vaginalTexture;   // To store the vaginal canal texture to make it move
+let basePositions;    // To store a copy of the original geometry positions
+let vaginalGeometry;
 const loader = new GLTFLoader();
 const clock = new THREE.Clock(); // clock for frame rate independent motion
 
@@ -77,6 +79,9 @@ let shieldTimeout = null;   // Timeout for the shield duration
 // Display the score
 document.getElementById('score').style.display = 'block';
 
+// Add fog
+scene.fog = new THREE.FogExp2(0xa7556a, 0.01);
+
 // Display the vaginal canal
 addVaginalCanal();
 
@@ -91,12 +96,18 @@ startGame();
 
 // ------------------------------- FUNCTIONS -------------------------------
 
+function fakeNoise(x, y, t) {
+    return Math.sin(x * 0.3 + t) * Math.cos(y * 0.3 + t);
+}
+
 function animate() {
     if (gameFinished) return; // Stop the animation loop if the game is finished
 
     requestAnimationFrame(animate);
     // Get time delta for frame rate independent motion
     const delta = clock.getDelta();
+    // Get elapsed time for noise generation
+    const elapsedTime = clock.getElapsedTime();
     // Update sperm animation
     mixers.forEach((mixer) => mixer.update(delta * spermAnimationSpeed));
 
@@ -112,6 +123,27 @@ function animate() {
     // Move the vaginal canal texture to simulate forward movement
     if (vaginalTexture) {
         vaginalTexture.offset.y -= 0.019 * delta * enemySpeed; // The speed depends on the enemy speed
+    }
+
+    // Deform the vaginal geometry to simulate movement
+    if (meshVaginalCanal && vaginalGeometry && basePositions) {
+        const pos = vaginalGeometry.attributes.position;
+
+        for (let i = 0; i < pos.count; i++) {
+            // (vertex i * 3 because each vertex has 3 components)
+            const ix = i * 3;
+            const x = basePositions[ix];
+            const y = basePositions[ix + 1];
+            const z = basePositions[ix + 2];
+
+            // Calculate displacement with Noise
+            const displacement = fakeNoise(x, z, elapsedTime) * 1;
+            // Apply noise on vertex to deform geometry
+            pos.setXYZ(i, x, y + displacement, z + displacement * 0.5);
+        }
+
+        pos.needsUpdate = true;
+        vaginalGeometry.computeVertexNormals();
     }
 
     // Render the scene
@@ -160,7 +192,7 @@ function addVaginalCanal() {
     const radialSegments = 32;  // how many slices around the cilinder
     const heightSegments = 32;  // how many slices along the cilinder
 
-    const geometry = new THREE.CylinderGeometry(
+    vaginalGeometry = new THREE.CylinderGeometry(
         radiusTop,
         radiusBottom,
         height,
@@ -169,7 +201,9 @@ function addVaginalCanal() {
         true // open-ended
     );
 
-    meshVaginalCanal = new THREE.Mesh(geometry, canalMaterial);
+    basePositions = vaginalGeometry.attributes.position.array.slice();
+
+    meshVaginalCanal = new THREE.Mesh(vaginalGeometry, canalMaterial);
     meshVaginalCanal.rotation.x = Math.PI / 2; // Align along the z-axis
     meshVaginalCanal.position.z = -80; // Position it in front of the camera
     meshVaginalCanal.position.y = -2; // Adjust height

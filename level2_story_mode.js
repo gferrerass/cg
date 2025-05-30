@@ -29,7 +29,7 @@ const raycaster = new THREE.Raycaster();
 let pointerLockEnabled = false;
 var score = 0;
 var health = 3;
-var timeLeft = 60;
+var timeLeft = 1;
 var timerInterval;
 var lastDamageTime = 0;
 
@@ -63,8 +63,9 @@ addUterus();
 let sperms = [];
 var spermsRotationSpeed = 5;
 var gate1, gate2;
-var material_uterus, geometry_uterus;
+var material_uterus, geometry_uterus, geometry_tubes;
 var finished = false;
+var basePositionsUterus, basePositionsTubes;
 
 
 // ------------------------------- MAIN CODE -------------------------------
@@ -72,6 +73,10 @@ var finished = false;
 startTimer();
 
 // ------------------------------- FUNCTIONS -------------------------------
+
+function fakeNoise(x, y, t) {
+    return Math.sin(x * 0.3 + t) * Math.cos(y * 0.3 + t);
+}
 
 function addUterus() {
     material_uterus = new THREE.MeshPhongMaterial({
@@ -100,6 +105,9 @@ function addUterus() {
     meshUterus.rotation.x = Math.PI / 2;
     meshUterus.receiveShadow = true;
     scene.add(meshUterus);
+
+    basePositionsUterus = geometry_uterus.attributes.position.array.slice();
+
 }
 
 
@@ -234,6 +242,7 @@ function startTimer() {
 }
 
 export function decreaseHealth() {
+    if (finished) return;
     const currentTime = performance.now();
 
     if (currentTime - lastDamageTime >= 1000) { // 1 second cooldown
@@ -306,12 +315,14 @@ function checkGates() {
         // Adding tubes in (0,0,0)
         newpos = Pos.clone().add(offset);
         // Adding tubes
-        var geometry_tubes= new THREE.SphereGeometry(40, 60, 40);
+        geometry_tubes= new THREE.SphereGeometry(40, 60, 40);
         meshTubes = new THREE.Mesh(geometry_tubes, material_uterus);
         meshTubes.scale.set(1, 1, 1);
         meshTubes.receiveShadow = true;
         meshTubes.position.copy(newpos);
         scene.add(meshTubes);
+
+        basePositionsTubes = geometry_tubes.attributes.position.array.slice();
 
         // Removing uterus and gates
         scene.remove(meshUterus);
@@ -341,7 +352,9 @@ function checkGates() {
 // Final update loop
 var MyUpdateLoop = function () {
     var delta = clock.getDelta();
-
+    // Get elapsed time for noise generation
+    const elapsedTime = clock.getElapsedTime();
+    
     camera.position.set(Pos.x, Pos.y, Pos.z);
     camera.lookAt(Pos.x + Dir.x, Pos.y + Dir.y, Pos.z + Dir.z);
     camera.updateProjectionMatrix();
@@ -350,6 +363,45 @@ var MyUpdateLoop = function () {
 
     // Updating player movement
     updateMovement(delta);
+
+    // Deforming uterus
+    if (meshUterus && geometry_uterus && basePositionsUterus) {
+        const pos1 = geometry_uterus.attributes.position;
+        for (let i = 0; i < pos1.count; i++) {
+            // (vertex i * 3 because each vertex has 3 components)
+            const ix = i * 3;
+            const x = basePositionsUterus[ix];
+            const y = basePositionsUterus[ix + 1];
+            const z = basePositionsUterus[ix + 2];
+
+            // Calculate displacement with Noise
+            const displacement = fakeNoise(x, z, elapsedTime) * 0.1;
+            // Apply noise on vertex to deform geometry
+            pos1.setXYZ(i, x, y + displacement, z + displacement * 0.5);
+        }
+
+        pos1.needsUpdate = true;
+        geometry_uterus.computeVertexNormals();
+
+    }
+    if (meshTubes && geometry_tubes && basePositionsTubes) {
+        const pos2 = geometry_tubes.attributes.position;
+        for (let i = 0; i < pos2.count; i++) {
+            // (vertex i * 3 because each vertex has 3 components)
+            const ix = i * 3;
+            const x = basePositionsTubes[ix];
+            const y = basePositionsTubes[ix + 1];
+            const z = basePositionsTubes[ix + 2];
+
+            // Calculate displacement with Noise
+            const displacement = fakeNoise(x, z, elapsedTime) * 1;
+            // Apply noise on vertex to deform geometry
+            pos2.setXYZ(i, x, y + displacement, z + displacement * 0.5);
+        }
+
+        pos2.needsUpdate = true;
+        geometry_tubes.computeVertexNormals();
+    }
 
     renderer.render(scene, camera);
     requestAnimationFrame(MyUpdateLoop);
