@@ -35,6 +35,9 @@ canalLight.target.position.set(0, 0, -50); // Aim deep inside the canal
 scene.add(canalLight);
 scene.add(canalLight.target);
 
+// Add fog
+scene.fog = new THREE.FogExp2(0x944c5e, 0.009);
+
 // ------------------------------- MAIN CODE -------------------------------
 
 // GUI variables
