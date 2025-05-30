@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
 //import { OrbitControls } from "./build/controls/OrbitControls.js"; // Debug
+
 // ------------------------------- SETUP -------------------------------
 const scene = new THREE.Scene();
 
@@ -34,17 +35,21 @@ canalLight.target.position.set(0, 0, -50); // Aim deep inside the canal
 scene.add(canalLight);
 scene.add(canalLight.target);
 
+// Add fog
+scene.fog = new THREE.FogExp2(0x944c5e, 0.009);
+
 // ------------------------------- MAIN CODE -------------------------------
 
 // GUI variables
+let deformCanal = false; // To allow vaginal canal deformation
 let score = 0;
 let timeLeft = 60;
 let timerInterval;
 let gameFinished = false;
 let meshVaginalCanal; // To store the vaginal canal mesh
 let vaginalTexture;   // To store the vaginal canal texture to make it move
-let basePositions;    // To store a copy of the original geometry positions
-let vaginalGeometry;
+let vaginalGeometry;  // To store the vaginal canal geometry
+let basePositions;    // To store the base positions of the vaginal canal geometry for deformation
 const loader = new GLTFLoader();
 const clock = new THREE.Clock(); // clock for frame rate independent motion
 
@@ -81,9 +86,6 @@ document.getElementById('score').style.display = 'block';
 document.getElementById('timer').style.display = 'block';
 document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
 
-// Add fog
-scene.fog = new THREE.FogExp2(0xa7556a, 0.01);
-
 // Display the vaginal canal
 addVaginalCanal();
 
@@ -98,6 +100,7 @@ startGame();
 
 // ------------------------------- FUNCTIONS -------------------------------
 
+// Generates simple not random noise based on sine and cosine functions to deform the vaginal canal geometry
 function fakeNoise(x, y, t) {
     return Math.sin(x * 0.3 + t) * Math.cos(y * 0.3 + t);
 }
@@ -108,8 +111,6 @@ function animate() {
     requestAnimationFrame(animate);
     // Get time delta for frame rate independent motion
     const delta = clock.getDelta();
-    // Get elapsed time for noise generation
-    const elapsedTime = clock.getElapsedTime();
     // Update sperm animation
     mixers.forEach((mixer) => mixer.update(delta * spermAnimationSpeed));
 
@@ -128,7 +129,10 @@ function animate() {
     }
 
     // Deform the vaginal geometry to simulate movement
-    if (meshVaginalCanal && vaginalGeometry && basePositions) {
+    if (deformCanal && meshVaginalCanal) {
+        // Get elapsed time for noise generation
+        const elapsedTime = clock.getElapsedTime();
+
         const pos = vaginalGeometry.attributes.position;
 
         for (let i = 0; i < pos.count; i++) {
@@ -139,7 +143,7 @@ function animate() {
             const z = basePositions[ix + 2];
 
             // Calculate displacement with Noise
-            const displacement = fakeNoise(x, z, elapsedTime) * 1;
+            const displacement = fakeNoise(x, z, elapsedTime) * 0.7;
             // Apply noise on vertex to deform geometry
             pos.setXYZ(i, x, y + displacement, z + displacement * 0.5);
         }
@@ -203,6 +207,7 @@ function addVaginalCanal() {
         true // open-ended
     );
 
+    // Copy the base positions of the geometry to deform it later
     basePositions = vaginalGeometry.attributes.position.array.slice();
 
     meshVaginalCanal = new THREE.Mesh(vaginalGeometry, canalMaterial);
