@@ -31,6 +31,7 @@ let score = 0;
 var health = 3;
 var timeLeft = 1;
 var lastDamageTime = 0;
+var timerInterval;
 
 // Rotation around the Y-Axis (horizontally)
 var yaw = 0;

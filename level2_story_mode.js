@@ -26,10 +26,10 @@ const pointerLockElement = renderer.domElement; // Applying pointer lock to the 
 const raycaster = new THREE.Raycaster();
 
 // GUI variables
+var timeLeft = 120;  // Adjustable
 let pointerLockEnabled = false;
 var score = 0;
 var health = 3;
-var timeLeft = 120;
 var timerInterval;
 var lastDamageTime = 0;
 
@@ -375,7 +375,7 @@ var MyUpdateLoop = function () {
             const z = basePositionsUterus[ix + 2];
 
             // Calculate displacement with Noise
-            const displacement = fakeNoise(x, z, elapsedTime) * 0.1;
+            const displacement = fakeNoise(x, z, elapsedTime) * 0.2;
             // Apply noise on vertex to deform geometry
             pos1.setXYZ(i, x, y + displacement, z + displacement * 0.5);
         }
@@ -394,7 +394,7 @@ var MyUpdateLoop = function () {
             const z = basePositionsTubes[ix + 2];
 
             // Calculate displacement with Noise
-            const displacement = fakeNoise(x, z, elapsedTime) * 1;
+            const displacement = fakeNoise(x, z, elapsedTime) * 0.4;
             // Apply noise on vertex to deform geometry
             pos2.setXYZ(i, x, y + displacement, z + displacement * 0.5);
         }

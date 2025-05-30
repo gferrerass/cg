@@ -41,7 +41,7 @@ scene.fog = new THREE.FogExp2(0x944c5e, 0.009);
 // ------------------------------- MAIN CODE -------------------------------
 
 // GUI variables
-let deformCanal = false; // To allow vaginal canal deformation
+let deformCanal = false; // Adjustable. Turns on vaginal canal deformation
 let score = 0;
 let timeLeft = 60;
 let timerInterval;
