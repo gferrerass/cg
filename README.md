@@ -8,7 +8,7 @@
 
 **Sperm Splash** is a 3D game where you guide a sperm cell on an epic journey through the female reproductive system - dodging threats, shooting enemies and progressing through multiple levels to reach the egg.
 
-**[Click here](https://drive.google.com/file/d/11v_VrIfis3DHuoMHTtqmJce_LdEvhJkj/view)** to watch the full tutorial!
+**[Click here](https://drive.google.com/file/d/11v_VrIfis3DHuoMHTtqmJce_LdEvhJkj/view)** to watch the full **Technical Walkthrough** & **Gameplay**!
 
 ![Victory screen](assets/images/victory_screen.png)
 
@@ -33,12 +33,25 @@ A high-stakes dash through the vaginal canal.
 * **Power-ups:** Grab the Shield (5s) to turn the tables - crashing into enemies while shielded nets you extra points.
 
 ### Level 2 - Uterus Splash 🔫
-A tactical FPS (First-Person Swimmer) inside the uterus.
+A tactical First-Person Shooter inside the uterus.
 ![Level 2 screenshot](assets/images/level2.png)
 
 * **Combat:** White blood cells are damage sponges. Rival sperm cells are fast but die in one hit.
 * **Health:** You have 3 HP. Use them wisely.
 * **The Grand Finale:** Survive the countdown, reach the Fallopian Gates, and gamble on a **50/50** chance. Choose the wrong side, and well... you can always restart the level.
+
+---
+
+## ⚙️ Technical Aspects
+
+### Real-Time State Management
+The game loop updates player movement, enemy behavior, timers, score, health, and power-up effects every frame to keep gameplay responsive and deterministic. Story and Survival modes share core systems, while each level applies its own rules and pacing through separate scene logic.
+
+### Collision Physics
+Collision handling is tuned for fast arcade gameplay: continuous position updates, proximity checks between entities, and immediate resolution on contact (damage, destruction, shield interaction, or score changes). This keeps interactions readable at high speed and avoids delayed hit feedback.
+
+### Resource Optimization in Browser
+To sustain smooth performance in a browser-based 3D environment, assets are preloaded, render work is minimized per frame, and entities are reused where possible to avoid unnecessary allocations. This reduces CPU/GPU spikes, helps maintain stable frame times, and improves consistency across devices.
 
 ---
 
