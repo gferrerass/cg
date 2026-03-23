@@ -1,6 +1,6 @@
 // ------------------------------- IMPORTS -------------------------------
 import * as THREE from "three";
-import { OrbitControls } from "./build/controls/OrbitControls.js";
+import { OrbitControls } from "../../vendor/three/controls/OrbitControls.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
 
 // ------------------------------- SETUP -------------------------------
@@ -21,7 +21,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // For orbit controls, to move around the scene
-//var controls = new OrbitControls(camera, renderer.domElement);
+// var controls = new OrbitControls(camera, renderer.domElement);
 
 // LIGHTING
 // Add an ambient light to the scene
@@ -42,6 +42,7 @@ scene.fog = new THREE.FogExp2(0x944c5e, 0.009);
 
 // GUI variables
 let score = 0;
+let timeLeft = 60;
 let timerInterval;
 let gameFinished = false;
 let meshVaginalCanal; // To store the vaginal canal mesh
@@ -53,11 +54,11 @@ const clock = new THREE.Clock(); // clock for frame rate independent motion
 const enemies = [];
 // Array of tuples with path to the model and scale of the model (only one model for now)
 const enemyModels = [
-    { path: "3DModels/leukocyte.glb", scale: 90 }
+    { path: "assets/models/leukocyte.glb", scale: 90 }
 ];
-let difficulty = 0.6; // Increases over time
+let difficulty = 0.4; // Increases over time
 let enemySpeed = 50 * difficulty; // Speed of the enemies
-const maxDifficulty = 1.35; // Maximum difficulty (increasing may cause performance issues)
+const maxDifficulty = 1.00; // Maximum difficulty (the max in story mode is lower than in survival mode)
 let spawnInterval = 100;    // Initial enemy spawn interval in milliseconds
 let currentInterval = spawnInterval / difficulty; // Current enemy spawn interval based on difficulty
 let spawner; // To store the spawn interval id
@@ -77,8 +78,10 @@ const mixers = []; // Stores animation mixers (for sperm movement)
 let shieldActive = false;   // Stores if the shield is active
 let shieldTimeout = null;   // Timeout for the shield duration
 
-// Display the score
+// Display the score and timer
 document.getElementById('score').style.display = 'block';
+document.getElementById('timer').style.display = 'block';
+document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
 
 // Display the vaginal canal
 addVaginalCanal();
@@ -145,13 +148,13 @@ function addVaginalCanal() {
     });
 
     // Texture mapping
-    vaginalTexture = new THREE.TextureLoader().load('textures/liquid_pink.png'); // Wet skin texture
+    vaginalTexture = new THREE.TextureLoader().load('assets/textures/liquid_pink.png'); // Wet skin texture
     vaginalTexture.wrapS = vaginalTexture.wrapT = THREE.RepeatWrapping;
     vaginalTexture.repeat.set(10, 20); // Tiling repeat 10 times around the cilinder and 20 times along its length
     canalMaterial.map = vaginalTexture;
 
     // Normal map for bumpiness
-    const normalMap = new THREE.TextureLoader().load('textures/tileable.jpg'); // Bump normal map
+    const normalMap = new THREE.TextureLoader().load('assets/textures/tileable.jpg'); // Bump normal map
     normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
     normalMap.repeat.set(10, 20);
     canalMaterial.normalMap = normalMap;
@@ -184,28 +187,42 @@ function addVaginalCanal() {
 // If the countdown reaches 0, it ends the game as a win
 function startGame() {
     timerInterval = setInterval(() => {
-        if (score == 0) {
+        if (score == 0) {   // Wait 1 second before spawning enemies
             // Start enemy spawner loop after 1 second
             enemySpawnerLoop();
         }
-        // Update score
+        // Update time left and score
+        timeLeft--;
         score++;
 
-        // Increase the difficulty every 5 seconds
-        if (score % 5 == 0 && difficulty < maxDifficulty) {
-            difficulty += 0.05;
-            spermAnimationSpeed += 0.2; // Increase the sperm swim animation speed
+        // Increase the difficulty slowly every second
+        if (difficulty < maxDifficulty) {
+            difficulty += 0.02; // Increase difficulty
             currentInterval = spawnInterval / difficulty; // Update the enemy spawn interval
             enemySpeed = 50 * difficulty;   // Update the enemy speed
         }
 
-        // Display updated score
+        // Increase the speed of the sperm swim animation
+        spermAnimationSpeed += 0.04;
+
+        // Display updated score and time left
+        document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
         document.getElementById('score').innerText = `Score: ${score}`;
+
+        // Check if time is up
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            gameFinished = true;
+            const timerElement = document.getElementById('timer');
+            timerElement.style.left = '23%';
+            timerElement.textContent = `Time's out! You made it through the Vag-Crash!`;
+            endGame(true); // Level passed, player wins
+        }
     }, 1000);   // 1 second interval
 }
 
 function spawnSperm() {
-    loader.load("3DModels/sperm.glb", (gltf) => {
+    loader.load("assets/models/sperm.glb", (gltf) => {
         sperm = gltf.scene;
         sperm.position.set(0, -2, -6);
         sperm.scale.setScalar(0.8);
@@ -233,13 +250,13 @@ function spawnSperm() {
 
 function spawnEnemy() {
     let isShield = false;   // Current enemy will be replaced by a shield
-    if (!shieldActive && Math.random() < 0.01) { // 1/100 chance to spawn a shield
+    if (!shieldActive && Math.random() < 0.014) { // 1/70 chance to spawn a shield
         isShield = true; 
     }
 
     let model;
     if (isShield) {
-        model = { path: "3DModels/shield.glb", scale: 1.0 }; // Shield model
+        model = { path: "assets/models/shield.glb", scale: 1.0 }; // Shield model
     } else {
         // Randomly select an enemy model by generating a random index between 0 and enemyModels.length-1
         model = enemyModels[Math.floor(Math.random() * enemyModels.length)];
@@ -376,7 +393,6 @@ function enemySpawnerLoop() {
     spawner = setTimeout(enemySpawnerLoop, currentInterval);
 }
 
-// Updates the sperm position based on the keys pressed
 function updatesperm() {
     if (!sperm) return;
 
@@ -392,6 +408,10 @@ function updatesperm() {
     if (keys.ArrowRight && sperm.position.x < movementLimits.right) {
         sperm.position.x += spermSpeed;
     }
+
+    // Keep the camera centered on the sperm
+    // camera.position.set(sperm.position.x, sperm.position.y + 3, 10);
+    // camera.lookAt(sperm.position.x, sperm.position.y, -50);
 }
 
 function endGame(win) {
@@ -407,22 +427,6 @@ function endGame(win) {
     } else {
         // Show game over message
         document.getElementById('gameover').style.display = 'block';
-        document.getElementById('finalScore').style.display = 'block';
-        document.getElementById('highScore').style.display = 'block';
-        
-        // Showing final Score
-        document.getElementById('finalScore').innerText = `Final Score: ${score}`;
-
-        // Obtaining locally saved High Score
-        const savedHighScore = localStorage.getItem('highScore1') || 0;
-
-        // Saving current High Score
-        if (score > savedHighScore) {
-            localStorage.setItem('highScore1', score);
-        }
-        // Displaying High Score
-        document.getElementById('highScore').innerText = `High Score: ${Math.max(score, savedHighScore)}`;
-        return;
     }
 }
 

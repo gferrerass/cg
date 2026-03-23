@@ -1,11 +1,11 @@
-import * as THREE from './build/three.module.js';
+import * as THREE from 'three';
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/GLTFLoader.js";
-import {decreaseHealth} from './level2_survival_mode.js';
+import {decreaseHealth} from '../levels/level2_story_mode.js';
 
 // Setting up 3D model loader
 const loader = new GLTFLoader();
 
-function loadAndAddModel(path, position, scale, scene, callback) {
+export function loadAndAddModel(path, position, scale, scene, callback) {
     loader.load(path, (gltf) => {
         const model = gltf.scene;
         model.position.copy(position);
@@ -23,7 +23,7 @@ function loadAndAddModel(path, position, scale, scene, callback) {
 
 export function addSperm(position, vector, scene, type, healthpoints) {
     if (type == 0) { // Sperm
-        loadAndAddModel("3DModels/sperm.glb", position, 0.5, scene, (model, animations) => {
+        loadAndAddModel("assets/models/sperm.glb", position, 0.5, scene, (model, animations) => {
             model.userData.cell_type = "sperm";
             vector.push(model);
     
@@ -43,7 +43,7 @@ export function addSperm(position, vector, scene, type, healthpoints) {
         });
     }
     else { // Leukocyte
-        loadAndAddModel("3DModels/leukocyte.glb", position, 20, scene, (model, animations) => {
+        loadAndAddModel("assets/models/leukocyte.glb", position, 20, scene, (model, animations) => {
             model.userData.cell_type = "leukocyte";
             model.userData.health = healthpoints;
             vector.push(model);

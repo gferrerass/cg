@@ -64,13 +64,13 @@ function startLevel(levelName) {
     const menu = document.getElementById('menu');
     menu.remove();
     logo.remove();
-    import(`./${levelName}.js`);
+  import(`./levels/${levelName}.js`);
 }
 
 // Place the game's logo on the screen
 function placelogo(positiontop, positionleft) {
     logo = document.createElement('img');
-    logo.src = 'images/name_and_logo.png';
+  logo.src = 'assets/images/name_and_logo.png';
     logo.style.position = 'absolute';
     logo.style.top = `${positiontop}%`;
     logo.style.left = `${positionleft}%`;

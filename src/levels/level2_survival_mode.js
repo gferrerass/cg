@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {addSperm, updateSperms, loadAndAddModel} from './cells.js';
+import {addSperm, updateSperms} from '../entities/cellsSurvival.js';
 
 // -------------------------- SETUP & VARIABLES --------------------------
 
@@ -11,7 +11,7 @@ document.body.appendChild(renderer.domElement);
 var ratio = window.innerWidth / window.innerHeight;
 
 // Creating the perspective camera
-var camera = new THREE.PerspectiveCamera(45, ratio, 0.01, 1000);
+var camera = new THREE.PerspectiveCamera(45, ratio, 0.00001, 1000);
 var Pos = new THREE.Vector3(0, 0, 0);
 camera.position.set(Pos.x, Pos.y, Pos.z);
 var Dir = new THREE.Vector3(0, 0, 1);
@@ -27,9 +27,9 @@ const raycaster = new THREE.Raycaster();
 
 // GUI variables
 let pointerLockEnabled = false;
-var score = 0;
+let score = 0;
 var health = 3;
-var timeLeft = 60;
+var timeLeft = 1;
 var timerInterval;
 var lastDamageTime = 0;
 
@@ -53,8 +53,6 @@ const clock = new THREE.Clock();
 document.getElementById('crosshair').style.display = 'block';
 document.getElementById('score').style.display = 'block';
 document.getElementById('health').style.display = 'block';
-document.getElementById('timer').style.display = 'block';
-document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
 
 // Creating uterus
 var meshUterus, meshTubes;
@@ -62,7 +60,6 @@ addUterus();
 
 let sperms = [];
 var spermsRotationSpeed = 5;
-var gate1, gate2;
 var material_uterus, geometry_uterus;
 var finished = false;
 
@@ -81,13 +78,13 @@ function addUterus() {
     });
 
     // Mapping for colour
-    var color_map = new THREE.TextureLoader().load('textures/meat.jpg');
+    var color_map = new THREE.TextureLoader().load('assets/textures/meat.jpg');
     color_map.wrapS = color_map.wrapT = THREE.RepeatWrapping;
     color_map.repeat.set(10, 10);
     material_uterus.map = color_map;
 
     // Normal mapping
-    var normal_map = new THREE.TextureLoader().load('textures/tileable.jpg');
+    var normal_map = new THREE.TextureLoader().load('assets/textures/tileable.jpg');
     normal_map.wrapS = normal_map.wrapT = THREE.RepeatWrapping;
     normal_map.repeat = new THREE.Vector2(10, 10);
 
@@ -207,28 +204,31 @@ function startTimer() {
     timerInterval = setInterval(() => {
         if (health == 0) {
             document.getElementById('gameover').style.display = 'block';
+            document.getElementById('finalScore').style.display = 'block';
+            document.getElementById('highScore').style.display = 'block';
+            // Showing final Score
+            document.getElementById('finalScore').innerText = `Final Score: ${score}`;
+
+            // Obtaining locally saved High Score
+            const savedHighScore = localStorage.getItem('highScore') || 0;
+
+            // Saving current High Score
+            if (score > savedHighScore) {
+                localStorage.setItem('highScore', score);
+            }
+
+            // Displaying High Score
+            document.getElementById('highScore').innerText = `High Score: ${Math.max(score, savedHighScore)}`;
             return;
         }
-        if (finished) return;
+        timeLeft--;
+
         addEnemies();
 
-        timeLeft--;
-        // Update time left
-        if (timeLeft > 0) {
-            const timerElement = document.getElementById('timer');
-            timerElement.textContent = `Time left: ${timeLeft}s`;
-            if (timeLeft == 30) spermsRotationSpeed = 6;
-        }
-        else if (timeLeft == 0) {
-            addGates();
-        }
-        else {
-            // Time's out
-            // Displaying time's out message
-            //clearInterval(timerInterval);
-            const timerElement = document.getElementById('timer');
-            timerElement.style.left = '30%';
-            timerElement.textContent = `Time's out! The tubes are open!`;
+        if (timeLeft == 30) spermsRotationSpeed += 1;
+        
+        if (timeLeft == 0) {
+            timeLeft = 120;
         }
     }, 1000); // (1 second)
 }
@@ -269,75 +269,6 @@ function addEnemies() {
     } 
 }
 
-function addGates() {
-    var material_gate = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true });
-    var geometry_gate = new THREE.CylinderGeometry(1, 1, 0.1, 20);
-    gate1 = new THREE.Mesh(geometry_gate, material_gate);
-    gate1.position.y = -1;
-    // Position and rotation
-    gate1.position.set(0, 0, 24.5);
-    gate1.rotation.x = Math.PI / 2;
-
-    scene.add(gate1);
-
-    gate2 = new THREE.Mesh(geometry_gate, material_gate);
-    gate2.position.y = -1;
-    // Position and rotation
-    gate2.position.set(0, 0, -24.5);
-    gate2.rotation.x = -Math.PI / 2;
-
-    scene.add(gate2);
-}
-
-function checkGates() {
-    const distanceTogate1 = gate1.position.distanceTo(camera.position);
-    const distanceTogate2 = gate2.position.distanceTo(camera.position);
-
-    if (distanceTogate1 < 1 || distanceTogate2 < 1) {
-        sperms.forEach(cell => {
-        scene.remove(cell);
-        });
-
-        var newpos = new THREE.Vector3(0, -20, -20);
-        // Changing player position to 0,0,0)
-        Pos.copy(newpos);
-        
-        var offset = new THREE.Vector3(0, 20, 20);
-        // Adding tubes in (0,0,0)
-        newpos = Pos.clone().add(offset);
-        // Adding tubes
-        var geometry_tubes= new THREE.SphereGeometry(40, 60, 40);
-        meshTubes = new THREE.Mesh(geometry_tubes, material_uterus);
-        meshTubes.scale.set(1, 1, 1);
-        meshTubes.receiveShadow = true;
-        meshTubes.position.copy(newpos);
-        scene.add(meshTubes);
-
-        // Removing uterus and gates
-        scene.remove(meshUterus);
-        scene.remove(gate1);
-        scene.remove(gate2);
-        
-        // 50% chance of adding egg cell
-        if (Math.random() < 0.5) {
-            // Adding egg cell
-            loadAndAddModel("3DModels/cell.glb", newpos, 10, scene, (model, animations) => {});
-             const gameoverElement = document.getElementById('gameover');
-            gameoverElement.textContent = `Victory!`;
-        }
-        else {
-            const gameoverElement = document.getElementById('gameover');
-            gameoverElement.style.left = '50%';
-            gameoverElement.style.fontSize = '32px';
-            gameoverElement.textContent = `Oh no! You picked the wrong Fallopian tube`;
-        }
-
-        finished = true;
-        document.getElementById('gameover').style.display = 'block';
-    }
-
-}
-
 // Final update loop
 var MyUpdateLoop = function () {
     var delta = clock.getDelta();
@@ -356,8 +287,6 @@ var MyUpdateLoop = function () {
 
     flashlight.position.copy(camera.position);
     flashlight.target.position.copy(camera.position.clone().add(Dir));
-
-    checkGates();
 
 };
 requestAnimationFrame(MyUpdateLoop);
